@@ -1,41 +1,4 @@
 
-/* Drop Tables */
-
-DROP TABLE js_gen_table_column;
-DROP TABLE js_gen_table;
-DROP TABLE js_sys_company_office;
-DROP TABLE js_sys_employee_office;
-DROP TABLE js_sys_employee_post;
-DROP TABLE js_sys_user_data_scope;
-DROP TABLE js_sys_user_role;
-DROP TABLE js_sys_user;
-DROP TABLE js_sys_employee;
-DROP TABLE js_sys_company;
-DROP TABLE js_sys_area;
-DROP TABLE js_sys_config;
-DROP TABLE js_sys_dict_data;
-DROP TABLE js_sys_dict_type;
-DROP TABLE js_sys_file_upload;
-DROP TABLE js_sys_file_entity;
-DROP TABLE js_sys_job_log;
-DROP TABLE js_sys_job;
-DROP TABLE js_sys_lang;
-DROP TABLE js_sys_log;
-DROP TABLE js_sys_role_menu;
-DROP TABLE js_sys_menu;
-DROP TABLE js_sys_module;
-DROP TABLE js_sys_msg_inner_record;
-DROP TABLE js_sys_msg_inner;
-DROP TABLE js_sys_msg_push;
-DROP TABLE js_sys_msg_pushed;
-DROP TABLE js_sys_msg_template;
-DROP TABLE js_sys_office;
-DROP TABLE js_sys_post;
-DROP TABLE js_sys_role_data_scope;
-DROP TABLE js_sys_role;
-
-
-
 
 /* Create Tables */
 
@@ -261,6 +224,7 @@ CREATE TABLE js_sys_employee
 	emp_code varchar(64) NOT NULL,
 	emp_name vargraphic(100) NOT NULL,
 	emp_name_en varchar(100),
+	emp_no vargraphic(100),
 	office_code varchar(64) NOT NULL,
 	office_name vargraphic(100) NOT NULL,
 	company_code varchar(64),
@@ -280,11 +244,11 @@ CREATE TABLE js_sys_employee
 -- 员工附属机构关系表
 CREATE TABLE js_sys_employee_office
 (
-	id varchar(64) NOT NULL UNIQUE,
+	id varchar(64) NOT NULL,
 	emp_code varchar(64) NOT NULL,
 	office_code varchar(64) NOT NULL,
 	post_code varchar(64),
-	PRIMARY KEY (emp_code, office_code)
+	PRIMARY KEY (id)
 );
 
 
@@ -307,6 +271,7 @@ CREATE TABLE js_sys_file_entity
 	file_extension varchar(100) NOT NULL,
 	file_size decimal(31) NOT NULL,
 	file_meta varchar(255),
+	file_preview char(1),
 	PRIMARY KEY (file_id)
 );
 
@@ -318,6 +283,7 @@ CREATE TABLE js_sys_file_upload
 	file_id varchar(64) NOT NULL,
 	file_name vargraphic(500) NOT NULL,
 	file_type varchar(20) NOT NULL,
+	file_sort decimal(10),
 	biz_key varchar(64),
 	biz_type varchar(64),
 	status char(1) DEFAULT '0' NOT NULL,
@@ -742,7 +708,7 @@ CREATE TABLE js_sys_user
 	user_code varchar(100) NOT NULL,
 	login_code varchar(100) NOT NULL,
 	user_name varchar(100) NOT NULL,
-	password varchar(100) NOT NULL,
+	password varchar(200) NOT NULL,
 	email varchar(300),
 	mobile varchar(100),
 	phone varchar(100),
@@ -897,7 +863,7 @@ CREATE INDEX idx_sys_msg_inner_sc ON js_sys_msg_inner (send_user_code);
 CREATE INDEX idx_sys_msg_inner_sd ON js_sys_msg_inner (send_date);
 CREATE INDEX idx_sys_msg_inner_r_mi ON js_sys_msg_inner_record (msg_inner_id);
 CREATE INDEX idx_sys_msg_inner_r_ruc ON js_sys_msg_inner_record (receive_user_code);
-CREATE INDEX idx_sys_msg_inner_r_status ON js_sys_msg_inner_record (read_status);
+CREATE INDEX idx_sys_msg_inner_r_stat ON js_sys_msg_inner_record (read_status);
 CREATE INDEX idx_sys_msg_inner_r_star ON js_sys_msg_inner_record (is_star);
 CREATE INDEX idx_sys_msg_push_type ON js_sys_msg_push (msg_type);
 CREATE INDEX idx_sys_msg_push_rc ON js_sys_msg_push (receive_code);

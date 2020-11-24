@@ -33,8 +33,11 @@ public class PropertiesUtils {
 	
 	// 默认加载的文件，可通过继承覆盖（若有相同Key，优先加载后面的）
 	public static final String[] DEFAULT_CONFIG_FILE = new String[]{
-			"classpath:config/bootstrap.yml", "classpath:bootstrap.yml",
-			"classpath:config/application.yml", "classpath:application.yml"};
+		"classpath:application.yml", "classpath:config/application.yml",
+		"classpath:bootstrap.yml", "classpath:config/bootstrap.yml",
+		"file:application.yml", "file:config/application.yml",
+		"file:bootstrap.yml", "file:config/bootstrap.yml",
+	};
 
 	private static Logger logger = PropertiesUtils.initLogger();
 	private final Set<String> configSet = SetUtils.newLinkedHashSet();
@@ -95,7 +98,7 @@ public class PropertiesUtils {
 				}
 			}
 			configFiles = configSet.toArray(new String[configSet.size()]);
-			logger.debug("Loading jeesite config: {}", (Object)configFiles);
+			logger.debug("Trying: {}", (Object)configFiles);
 			INSTANCE = new PropertiesUtils(configFiles);
 		}
 	}
@@ -105,18 +108,19 @@ public class PropertiesUtils {
 	 */
 	public PropertiesUtils(String... configFiles) {
 		for (String location : configFiles) {
-			try {
-				Resource resource = ResourceUtils.getResource(location);
-				if (resource.exists()){
-        			if (location.endsWith(".properties")){
-        				try (InputStreamReader is = new InputStreamReader(resource.getInputStream(), "UTF-8")){
-	    					properties.load(is);
-	    					configSet.add(location);
-	        			} catch (IOException ex) {
-	            			logger.error("Load " + location + " failure. ", ex);
-	        			}
+			Resource resource = ResourceUtils.getResource(location);
+			if (resource.exists()){
+    			if (location.endsWith(".properties")){
+    				try (InputStreamReader is = new InputStreamReader(resource.getInputStream(), "UTF-8")){
+    					properties.load(is);
+    					configSet.add(location);
+        			} catch (IOException e) {
+            			System.err.println("Load " + location + " failure.");
+            			e.printStackTrace();
         			}
-        			else if (location.endsWith(".yml")){
+    			}
+    			else if (location.endsWith(".yml")){
+    				try {
         				YamlPropertiesFactoryBean bean = new YamlPropertiesFactoryBean();
         				bean.setResources(resource);
         				for (Map.Entry<Object,Object> entry : bean.getObject().entrySet()){
@@ -124,12 +128,14 @@ public class PropertiesUtils {
         							ObjectUtils.toString(entry.getValue()));
         				}
     					configSet.add(location);
-        			}
-				}
-			} catch (Exception e) {
-    			logger.error("Load " + location + " failure. ", e);
+    				} catch (Exception e) {
+    	    			System.err.println("Load " + location + " failure.");
+    	    			e.printStackTrace();
+    				}
+    			}
 			}
 		}
+		properties.put("configFiles", StringUtils.join(configFiles, ","));
 	}
 	
 	/**

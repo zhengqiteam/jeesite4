@@ -17,6 +17,7 @@
 					<ul class="dropdown-menu">
 						<li><a href="javascript:" id="btnExport"><i class="glyphicon glyphicon-export"></i> ${text('导出')}</a></li>
 						<li><a href="javascript:" id="btnImport"><i class="glyphicon glyphicon-import"></i> ${text('导入')}</a></li>
+						<li><a href="javascript:" id="btnSetting"><i class="fa fa-navicon"></i> ${text('设置')}</a></li>
 					</ul>
 				</div>
 			</div>
@@ -38,9 +39,9 @@
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="control-label">${text('邮箱')}：</label>
+					<label class="control-label">${text('姓名')}：</label>
 					<div class="control-inline">
-						<#form:input path="email" maxlength="300" class="form-control width-90"/>
+						<#form:input path="refName" maxlength="100" class="form-control width-90"/>
 					</div>
 				</div>
 				<div class="form-group">
@@ -50,50 +51,55 @@
 					</div>
 				</div>
 				<div class="form-group">
-					<label class="control-label">${text('电话')}：</label>
-					<div class="control-inline">
-						<#form:input path="phone" maxlength="100" class="form-control width-90"/>
-					</div>
-				</div>
-				<div class="form-row"></div>
-				<div class="form-group">
-					<label class="control-label">${text('姓名')}：</label>
-					<div class="control-inline">
-						<#form:input path="refName" maxlength="100" class="form-control width-90"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<label class="control-label">${text('机构')}：</label>
-					<div class="control-inline width-90">
-						<#form:treeselect id="office" title="${text('机构选择')}"
-								path="employee.office.officeCode" labelPath="employee.office.officeName" 
-								url="${ctx}/sys/office/treeData?ctrlPermi=${@Global.getConfig('user.adminCtrlPermi', '2')}" btnClass="btn-sm" allowClear="true" canSelectParent="true"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<label class="control-label">${text('公司')}：</label>
-					<div class="control-inline width-90">
-						<#form:treeselect id="company" title="${text('公司选择')}"
-								path="employee.company.companyCode" labelPath="employee.company.companyName" 
-								url="${ctx}/sys/company/treeData?ctrlPermi=${@Global.getConfig('user.adminCtrlPermi', '2')}" btnClass="btn-sm" allowClear="true" canSelectParent="true"/>
-					</div>
-				</div>
-				<div class="form-group">
-					<label class="control-label">${text('岗位')}：</label>
-					<div class="control-inline width-90">
-						<#form:select name="employee.postCode" items="${postList}"
-							itemLabel="postName" itemValue="postCode" blankOption="true" class="form-control"/>
-					</div>
-				</div>
-				<div class="form-group">
 					<label class="control-label">${text('状态')}：</label>
 					<div class="control-inline width-90">
-						<#form:select path="status" dictType="sys_user_status" blankOption="true" class="form-control"/>
+						<#form:select path="status" dictType="sys_user_status" blankOption="true" class="form-control isQuick"/>
 					</div>
 				</div>
+				<!-- <div class="form-row"></div> -->
 				<div class="form-group">
 					<button type="submit" class="btn btn-primary btn-sm">${text('查询')}</button>
 					<button type="reset" class="btn btn-default btn-sm">${text('重置')}</button>
+					<button type="button" class="btn btn-default btn-sm btnFormMore">${text('更多')}<i class="fa fa-angle-double-down"></i></button>
+				</div>
+				<div class="form-more">
+					<div class="form-group">
+						<label class="control-label">${text('机构')}：</label>
+						<div class="control-inline width-90">
+							<#form:treeselect id="office" title="${text('机构选择')}"
+									path="employee.office.officeCode" labelPath="employee.office.officeName" 
+									url="${ctx}/sys/office/treeData?ctrlPermi=${@Global.getConfig('user.adminCtrlPermi', '2')}"
+									btnClass="btn-sm" allowClear="true" canSelectRoot="true" canSelectParent="true"/>
+						</div>
+					</div>
+					<div class="form-group">
+						<label class="control-label">${text('公司')}：</label>
+						<div class="control-inline width-90">
+							<#form:treeselect id="company" title="${text('公司选择')}"
+									path="employee.company.companyCode" labelPath="employee.company.companyName" 
+									url="${ctx}/sys/company/treeData?ctrlPermi=${@Global.getConfig('user.adminCtrlPermi', '2')}"
+									btnClass="btn-sm" allowClear="true" canSelectRoot="true" canSelectParent="true"/>
+						</div>
+					</div>
+					<div class="form-group">
+						<label class="control-label">${text('邮箱')}：</label>
+						<div class="control-inline">
+							<#form:input path="email" maxlength="300" class="form-control width-90"/>
+						</div>
+					</div>
+					<div class="form-group">
+						<label class="control-label">${text('岗位')}：</label>
+						<div class="control-inline width-90">
+							<#form:select name="employee.postCode" items="${postList}"
+								itemLabel="postName" itemValue="postCode" blankOption="true" class="form-control"/>
+						</div>
+					</div>
+					<div class="form-group">
+						<label class="control-label">${text('电话')}：</label>
+						<div class="control-inline">
+							<#form:input path="phone" maxlength="100" class="form-control width-90"/>
+						</div>
+					</div>
 				</div>
 			</#form:form>
 			<table id="dataGrid"></table>
@@ -121,7 +127,7 @@ $('#dataGrid').dataGrid({
 		{header:'${text("状态")}', name:'status', index:'a.status', width:140, align:"center", formatter: function(val, obj, row, act){
 			return js.getDictLabel(${@DictUtils.getDictListJson('sys_status')}, val, '未知', true);
 		}},
-		{header:'${text("操作")}', name:'actions', width:260, sortable:false, title:false, formatter: function(val, obj, row, act){
+		{header:'${text("操作")}', name:'actions', width:270, sortable:false, title:false, formatter: function(val, obj, row, act){
 			var actions = [];
 			<% if(hasPermi('sys:empUser:edit')){ %>
 				actions.push('<a href="${ctx}/sys/empUser/form?userCode='+row.userCode+'&op=edit" class="btnList" title="${text("编辑用户")}"><i class="fa fa-pencil"></i></a>&nbsp;');
@@ -129,8 +135,7 @@ $('#dataGrid').dataGrid({
 			<% if(hasPermi('sys:empUser:updateStatus')){ %>
 				if (row.status == Global.STATUS_NORMAL){
 					actions.push('<a href="${ctx}/sys/empUser/disable?userCode='+row.userCode+'" class="btnList" title="${text("停用用户")}" data-confirm="${text("确认要停用该用户吗？")}"><i class="glyphicon glyphicon-ban-circle"></i></a>&nbsp;');
-				}
-				if (row.status == Global.STATUS_DISABLE){
+				}else if (row.status == Global.STATUS_DISABLE || row.status == Global.STATUS_FREEZE || row.status == Global.STATUS_AUDIT){
 					actions.push('<a href="${ctx}/sys/empUser/enable?userCode='+row.userCode+'" class="btnList" title="${text("启用用户")}" data-confirm="${text("确认要启用该用户吗？")}"><i class="glyphicon glyphicon-ok-circle"></i></a>&nbsp;');
 				}
 			<% } %>
@@ -169,22 +174,22 @@ $('#btnImport').click(function(){
 	js.layer.open({
 		type: 1,
 		area: ['400px'],
-		title: '导入用户数据',
+		title: '${text("导入用户数据")}',
 		resize: false,
 		scrollbar: true,
 		content: js.template('importTpl'),
 		success: function(layero, index){
 			layero.find('input[type="checkbox"]').iCheck();
 		},
-		btn: ['<i class="fa fa-check"></i> 导入',
-			'<i class="fa fa-remove"></i> 取消'],
+		btn: ['<i class="fa fa-check"></i> ${text("导入")}',
+			'<i class="fa fa-remove"></i> ${text("关闭")}'],
 		btn1: function(index, layero){
 			var form = {
 				inputForm: layero.find('#inputForm'),
 				file: layero.find('#file').val()
 			};
 		    if (form.file == '' || (!js.endWith(form.file, '.xls') && !js.endWith(form.file, '.xlsx'))){
-		    	js.showMessage("${text('文件不正确，请选择后缀为 “xls”或“xlsx”的文件。')}", null, 'warning');
+		    	js.showMessage("${text('文件不正确，请选择后缀为“xls”或“xlsx”的文件。')}", null, 'warning');
 		        return false;
 		    }
 			js.ajaxSubmitForm(form.inputForm, function(data){

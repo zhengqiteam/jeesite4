@@ -9,25 +9,29 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Comment;
+import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
@@ -36,10 +40,9 @@ import org.apache.poi.xssf.usermodel.XSSFRichTextString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.jeesite.common.codec.EncodeUtils;
 import com.jeesite.common.collect.ListUtils;
-import com.jeesite.common.collect.SetUtils;
+import com.jeesite.common.collect.MapUtils;
 import com.jeesite.common.lang.ObjectUtils;
 import com.jeesite.common.lang.StringUtils;
 import com.jeesite.common.reflect.ReflectUtils;
@@ -47,11 +50,12 @@ import com.jeesite.common.utils.excel.annotation.ExcelField;
 import com.jeesite.common.utils.excel.annotation.ExcelField.Align;
 import com.jeesite.common.utils.excel.annotation.ExcelField.Type;
 import com.jeesite.common.utils.excel.annotation.ExcelFields;
+import com.jeesite.common.utils.excel.fieldtype.FieldType;
 
 /**
  * 导出Excel文件（导出“XLSX”格式，支持大数据量导出   @see org.apache.poi.ss.SpreadsheetVersion）
  * @author ThinkGem
- * @version 2018-08-11
+ * @version 2020-3-5
  */
 public class ExcelExport implements Closeable{
 	
@@ -83,9 +87,9 @@ public class ExcelExport implements Closeable{
 	private List<Object[]> annotationList;
 	
 	/**
-	 * 用于清理缓存
+	 * 存储字段类型临时数据
 	 */
-	private Set<Class<?>> fieldTypes = SetUtils.newHashSet();
+	private Map<Class<? extends FieldType>, FieldType> fieldTypes = MapUtils.newHashMap();
 	
 	/**
 	 * 构造函数
@@ -226,8 +230,8 @@ public class ExcelExport implements Closeable{
 		Collections.sort(annotationList, new Comparator<Object[]>() {
 			@Override
 			public int compare(Object[] o1, Object[] o2) {
-				return new Integer(((ExcelField)o1[0]).sort()).compareTo(
-						new Integer(((ExcelField)o2[0]).sort()));
+				return Integer.valueOf(((ExcelField)o1[0]).sort()).compareTo(
+						Integer.valueOf(((ExcelField)o2[0]).sort()));
 			};
 		});
 		// Initialize
@@ -244,7 +248,11 @@ public class ExcelExport implements Closeable{
 				}
 			}
 			headerList.add(headerTitle);
-			headerWidthList.add(ef.width());
+			if (ef.words() != -1) {
+				headerWidthList.add(ef.words() * 256);
+			}else {
+				headerWidthList.add(ef.width());
+			}
 		}
 		// 创建工作表
 		this.createSheet(sheetName, title, headerList, headerWidthList);
@@ -348,24 +356,24 @@ public class ExcelExport implements Closeable{
 		Map<String, CellStyle> styles = new HashMap<String, CellStyle>();
 		
 		CellStyle style = wb.createCellStyle();
-		style.setAlignment(CellStyle.ALIGN_CENTER);
-		style.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
+		style.setAlignment(HorizontalAlignment.CENTER);
+		style.setVerticalAlignment(VerticalAlignment.CENTER);
 		Font titleFont = wb.createFont();
 		titleFont.setFontName("Arial");
 		titleFont.setFontHeightInPoints((short) 16);
-		titleFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+		titleFont.setBold(true);
 		style.setFont(titleFont);
 		styles.put("title", style);
 
 		style = wb.createCellStyle();
-		style.setVerticalAlignment(CellStyle.VERTICAL_CENTER);
-		style.setBorderRight(CellStyle.BORDER_THIN);
+		style.setVerticalAlignment(VerticalAlignment.CENTER);
+		style.setBorderRight(BorderStyle.THIN);
 		style.setRightBorderColor(IndexedColors.GREY_50_PERCENT.getIndex());
-		style.setBorderLeft(CellStyle.BORDER_THIN);
+		style.setBorderLeft(BorderStyle.THIN);
 		style.setLeftBorderColor(IndexedColors.GREY_50_PERCENT.getIndex());
-		style.setBorderTop(CellStyle.BORDER_THIN);
+		style.setBorderTop(BorderStyle.THIN);
 		style.setTopBorderColor(IndexedColors.GREY_50_PERCENT.getIndex());
-		style.setBorderBottom(CellStyle.BORDER_THIN);
+		style.setBorderBottom(BorderStyle.THIN);
 		style.setBottomBorderColor(IndexedColors.GREY_50_PERCENT.getIndex());
 		Font dataFont = wb.createFont();
 		dataFont.setFontName("Arial");
@@ -375,29 +383,29 @@ public class ExcelExport implements Closeable{
 		
 		style = wb.createCellStyle();
 		style.cloneStyleFrom(styles.get("data"));
-		style.setAlignment(CellStyle.ALIGN_LEFT);
+		style.setAlignment(HorizontalAlignment.LEFT);
 		styles.put("data1", style);
 
 		style = wb.createCellStyle();
 		style.cloneStyleFrom(styles.get("data"));
-		style.setAlignment(CellStyle.ALIGN_CENTER);
+		style.setAlignment(HorizontalAlignment.CENTER);
 		styles.put("data2", style);
 
 		style = wb.createCellStyle();
 		style.cloneStyleFrom(styles.get("data"));
-		style.setAlignment(CellStyle.ALIGN_RIGHT);
+		style.setAlignment(HorizontalAlignment.RIGHT);
 		styles.put("data3", style);
 		
 		style = wb.createCellStyle();
 		style.cloneStyleFrom(styles.get("data"));
 //		style.setWrapText(true);
-		style.setAlignment(CellStyle.ALIGN_CENTER);
+		style.setAlignment(HorizontalAlignment.CENTER);
 		style.setFillForegroundColor(IndexedColors.GREY_50_PERCENT.getIndex());
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		Font headerFont = wb.createFont();
 		headerFont.setFontName("Arial");
 		headerFont.setFontHeightInPoints((short) 10);
-		headerFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+		headerFont.setBold(true);
 		headerFont.setColor(IndexedColors.WHITE.getIndex());
 		style.setFont(headerFont);
 		styles.put("header", style);
@@ -421,7 +429,7 @@ public class ExcelExport implements Closeable{
 	 * @return 单元格对象
 	 */
 	public Cell addCell(Row row, int column, Object val){
-		return this.addCell(row, column, val, Align.AUTO, Class.class, null);
+		return this.addCell(row, column, val, Align.AUTO, FieldType.class, null);
 	}
 	
 	/**
@@ -433,20 +441,17 @@ public class ExcelExport implements Closeable{
 	 * @param dataFormat 数值格式（例如：0.00，yyyy-MM-dd）
 	 * @return 单元格对象
 	 */
-	public Cell addCell(Row row, int column, Object val, Align align, Class<?> fieldType, String dataFormat){
+	@SuppressWarnings("unchecked")
+	public Cell addCell(Row row, int column, Object val, Align align, Class<? extends FieldType> fieldType, String dataFormat){
 		Cell cell = row.createCell(column);
-		String defaultDataFormat = "@";
+		String defaultDataFormat = null;
 		try {
 			if(val == null){
-				cell.setCellValue("");
-			}else if(fieldType != Class.class){
-				fieldTypes.add(fieldType); // 先存起来，方便完成后清理缓存
-				cell.setCellValue((String)fieldType.getMethod("setValue", Object.class).invoke(null, val));
-				try{
-					defaultDataFormat = (String)fieldType.getMethod("getDataFormat").invoke(null);
-				} catch (Exception ex) {
-					defaultDataFormat = "@";
-				}
+				cell.setCellValue(StringUtils.EMPTY);
+			}else if(fieldType != FieldType.class){
+				FieldType ft = getFieldType(fieldType);
+				cell.setCellValue(ft.setValue(val));
+				defaultDataFormat = ft.getDataFormat();
 			}else{
 				if(val instanceof String) {
 					cell.setCellValue((String) val);
@@ -462,15 +467,18 @@ public class ExcelExport implements Closeable{
 				}else if(val instanceof Float) {
 					cell.setCellValue((Float) val);
 					defaultDataFormat = "0.00";
+				}else if(val instanceof BigDecimal) {
+					cell.setCellValue(((BigDecimal)val).doubleValue());
 				}else if(val instanceof Date) {
 					cell.setCellValue((Date) val);
 					defaultDataFormat = "yyyy-MM-dd HH:mm";
 				}else {
 					// 如果没有指定 fieldType，切自行根据类型查找相应的转换类（com.jeesite.common.utils.excel.fieldtype.值的类名+Type）
-					Class<?> fieldType2 = Class.forName(this.getClass().getName().replaceAll(this.getClass().getSimpleName(), 
+					fieldType = (Class<? extends FieldType>)Class.forName(this.getClass().getName().replaceAll(this.getClass().getSimpleName(), 
 							"fieldtype."+val.getClass().getSimpleName()+"Type"));
-					fieldTypes.add(fieldType2); // 先存起来，方便完成后清理缓存
-					cell.setCellValue((String)fieldType2.getMethod("setValue", Object.class).invoke(null, val));
+					FieldType ft = getFieldType(fieldType);
+					cell.setCellValue(ft.setValue(val));
+					defaultDataFormat = ft.getDataFormat();
 				}
 			}
 //			if (val != null){
@@ -478,8 +486,11 @@ public class ExcelExport implements Closeable{
 				if (style == null){
 					style = wb.createCellStyle();
 					style.cloneStyleFrom(styles.get("data"+(align.value()>=1&&align.value()<=3?align.value():"")));
-					if (dataFormat != null){
+					if (StringUtils.isNotBlank(dataFormat)){
 						defaultDataFormat = dataFormat;
+					}
+					if (defaultDataFormat == null) {
+						defaultDataFormat = "@";
 					}
 			        style.setDataFormat(wb.createDataFormat().getFormat(defaultDataFormat));
 					styles.put("data_column_" + column, style);
@@ -491,6 +502,15 @@ public class ExcelExport implements Closeable{
 			cell.setCellValue(ObjectUtils.toString(val));
 		}
 		return cell;
+	}
+	
+	private FieldType getFieldType(Class<? extends FieldType> fieldType) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
+		FieldType ft = fieldTypes.get(fieldType);
+		if (ft == null) {
+			ft = fieldType.getDeclaredConstructor().newInstance();
+			fieldTypes.put(fieldType, ft);
+		}
+		return ft;
 	}
 
 	/**
@@ -519,7 +539,7 @@ public class ExcelExport implements Closeable{
 					// If is dict, get dict label
 					if (StringUtils.isNotBlank(ef.dictType())){
 						Class<?> dictUtils = Class.forName("com.jeesite.modules.sys.utils.DictUtils");
-						val = dictUtils.getMethod("getDictLabel", String.class, String.class,
+						val = dictUtils.getMethod("getDictLabels", String.class, String.class,
 									String.class).invoke(null, ef.dictType(), val==null?"":val.toString(), "");
 						//val = DictUtils.getDictLabel(val==null?"":val.toString(), ef.dictType(), "");
 					}
@@ -528,17 +548,20 @@ public class ExcelExport implements Closeable{
 					log.info(ex.toString());
 					val = "";
 				}
-				String dataFormat = ef.dataFormat();
-				try {
-					// 获取Json格式化注解的格式化参数
-					JsonFormat jf = e.getClass().getMethod("get"+StringUtils.capitalize(ef.attrName())).getAnnotation(JsonFormat.class);
-					if (jf != null && jf.pattern() != null){
-						dataFormat = jf.pattern();
-					}
-				} catch (Exception e1) {
-					// 如果获取失败，则使用默认。
-				}
-				this.addCell(row, colunm++, val, ef.align(), ef.fieldType(), dataFormat);
+//				// 如果没有设置格式，则获取Json格式化注解的格式化参数（建议使用 ef.dataFormat 指定格式）
+//				String dataFormat = ef.dataFormat();
+//				if (StringUtils.isBlank(dataFormat)) {
+//					try {
+//						JsonFormat jf = e.getClass().getMethod("get"+StringUtils.capitalize(ef.attrName()))
+//								.getAnnotation(JsonFormat.class);
+//						if (jf != null && jf.pattern() != null){
+//							dataFormat = jf.pattern();
+//						}
+//					} catch (Exception e1) {
+//						// 如果获取失败，则使用默认。
+//					}
+//				}
+				this.addCell(row, colunm++, val, ef.align(), ef.fieldType(), ef.dataFormat());
 				sb.append(val + ", ");
 			}
 			log.debug("Write success: ["+row.getRowNum()+"] "+sb.toString());
@@ -566,7 +589,7 @@ public class ExcelExport implements Closeable{
 	public ExcelExport write(HttpServletResponse response, String fileName){
 		response.reset();
         response.setContentType("application/octet-stream; charset=utf-8");
-        response.setHeader("Content-Disposition", "attachment; filename="+EncodeUtils.encodeUrl(fileName));
+		response.addHeader("Content-Disposition", "attachment; filename*=utf-8'zh_cn'"+EncodeUtils.encodeUrl(fileName));
 		try {
 			write(response.getOutputStream());
 		} catch (IOException ex) {
@@ -600,17 +623,14 @@ public class ExcelExport implements Closeable{
 	
 	@Override
 	public void close() {
+		fieldTypes.clear();
 		if (wb instanceof SXSSFWorkbook){
 			((SXSSFWorkbook)wb).dispose();
 		}
-		Iterator<Class<?>> it = fieldTypes.iterator();
-		while(it.hasNext()){
-			Class<?> clazz = it.next();
-			try {
-				clazz.getMethod("clearCache").invoke(null);
-			} catch (Exception e) {
-				// 报错忽略，有可能没实现此方法
-			}
+		try {
+			wb.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 	
@@ -636,28 +656,28 @@ public class ExcelExport implements Closeable{
 //		}
 //		
 //		// 创建一个Sheet表，并导入数据
-//		ExcelExport ee = new ExcelExport("表格1", "表格标题1", headerList, null);
-//		for (int i = 0; i < dataList.size(); i++) {
-//			Row row = ee.addRow();
-//			for (int j = 0; j < dataList.get(i).size(); j++) {
-//				ee.addCell(row, j, dataList.get(i).get(j));
+//		try(ExcelExport ee = new ExcelExport("表格1", "表格标题1", headerList, null)){
+//			
+//			for (int i = 0; i < dataList.size(); i++) {
+//				Row row = ee.addRow();
+//				for (int j = 0; j < dataList.get(i).size(); j++) {
+//					ee.addCell(row, j, dataList.get(i).get(j));
+//				}
 //			}
-//		}
-//		
-//		// 再创建一个Sheet表，并导入数据
-//		ee.createSheet("表格2", "表格标题2", headerList, null);
-//		for (int i = 0; i < dataList.size(); i++) {
-//			Row row = ee.addRow();
-//			for (int j = 0; j < dataList.get(i).size(); j++) {
-//				ee.addCell(row, j, dataList.get(i).get(j)+"2");
+//			
+//			// 再创建一个Sheet表，并导入数据
+//			ee.createSheet("表格2", "表格标题2", headerList, null);
+//			for (int i = 0; i < dataList.size(); i++) {
+//				Row row = ee.addRow();
+//				for (int j = 0; j < dataList.get(i).size(); j++) {
+//					ee.addCell(row, j, dataList.get(i).get(j)+"2");
+//				}
 //			}
-//		}
-//		
-//		// 输出到文件
-//		ee.writeFile("target/export.xlsx");
+//			
+//			// 输出到文件
+//			ee.writeFile("target/export.xlsx");
 //
-//		// 清理销毁
-//		ee.dispose();
+//		}
 //		
 //		log.debug("Export success.");
 //		

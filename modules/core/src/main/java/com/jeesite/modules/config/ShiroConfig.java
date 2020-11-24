@@ -50,7 +50,6 @@ public class ShiroConfig {
 	
 	/**
 	 * Apache Shiro Filter
-	 * @throws Exception 
 	 */
 	@Bean
 	@Order(3000)
@@ -187,6 +186,7 @@ public class ShiroConfig {
 		bean.setRealms(realms);
 		bean.setSessionManager(sessionManager);
 		bean.setCacheManager(shiroCacheManager);
+		//bean.setRememberMeManager(null); // 关闭 RememberMe
 		// 设置支持CAS的subjectFactory
 		bean.setSubjectFactory(new CasSubjectFactory());
 		return bean;

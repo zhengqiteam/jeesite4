@@ -10,6 +10,7 @@
 				<% if(hasPermi('msg:msgInner:edit')){ %>
 					<a href="${ctx}/msg/msgInner/form" class="btn btn-default btnTool" title="${text('新增')}"><i class="fa fa-plus"></i> ${text('新增')}</a>
 				<% } %>
+				<a href="#" class="btn btn-default" id="btnSetting" title="${text('设置')}"><i class="fa fa-navicon"></i></a>
 			</div>
 		</div>
 		<div class="box-body">
@@ -36,17 +37,17 @@
 				<div class="form-group">
 					<label class="control-label">${text('发送时间')}：</label>
 					<div class="control-inline">
-						<#form:input path="sendDate_gte" readonly="true" maxlength="20" class="form-control Wdate-date"
-							dataFormat="date" onclick="WdatePicker({dateFmt:'yyyy-MM-dd',isShowClear:false,onpicked:function(){sendDate_lte.click()}});"/>
-						&nbsp;--&nbsp;
-						<#form:input path="sendDate_lte" readonly="true" maxlength="20" class="form-control Wdate-date"
-							dataFormat="date" onclick="WdatePicker({dateFmt:'yyyy-MM-dd',isShowClear:false});"/>
+						<#form:input path="sendDate_gte" readonly="true" maxlength="20" class="form-control laydate width-date"
+							dataFormat="date" data-type="date" data-format="yyyy-MM-dd" data-done="sendDate_lte.click()"/>
+						&nbsp;-&nbsp;
+						<#form:input path="sendDate_lte" readonly="true" maxlength="20" class="form-control laydate width-date"
+							dataFormat="date" data-type="date" data-format="yyyy-MM-dd"/>
 					</div>
 				</div>
 				<div class="form-group">
 					<label class="control-label">${text('状态')}：</label>
 					<div class="control-inline width-60">
-						<#form:select path="status" dictType="msg_inner_msg_status" blankOption="true" class="form-control"/>
+						<#form:select path="status" dictType="msg_inner_msg_status" blankOption="true" class="form-control isQuick"/>
 					</div>
 				</div>
 				<div class="form-group">

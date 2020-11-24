@@ -7,8 +7,12 @@
 *.epoch
 *.lic
 
+.settings
+.apt_generated
+.factorypath
 .classpath
 .project
+.vscode
 
 .idea
 *.ipr

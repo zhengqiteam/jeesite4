@@ -1,41 +1,4 @@
 
-/* Drop Tables */
-
-DROP TABLE js_gen_table_column CASCADE CONSTRAINTS;
-DROP TABLE js_gen_table CASCADE CONSTRAINTS;
-DROP TABLE js_sys_company_office CASCADE CONSTRAINTS;
-DROP TABLE js_sys_employee_office CASCADE CONSTRAINTS;
-DROP TABLE js_sys_employee_post CASCADE CONSTRAINTS;
-DROP TABLE js_sys_user_data_scope CASCADE CONSTRAINTS;
-DROP TABLE js_sys_user_role CASCADE CONSTRAINTS;
-DROP TABLE js_sys_user CASCADE CONSTRAINTS;
-DROP TABLE js_sys_employee CASCADE CONSTRAINTS;
-DROP TABLE js_sys_company CASCADE CONSTRAINTS;
-DROP TABLE js_sys_area CASCADE CONSTRAINTS;
-DROP TABLE js_sys_config CASCADE CONSTRAINTS;
-DROP TABLE js_sys_dict_data CASCADE CONSTRAINTS;
-DROP TABLE js_sys_dict_type CASCADE CONSTRAINTS;
-DROP TABLE js_sys_file_upload CASCADE CONSTRAINTS;
-DROP TABLE js_sys_file_entity CASCADE CONSTRAINTS;
-DROP TABLE js_sys_job_log CASCADE CONSTRAINTS;
-DROP TABLE js_sys_job CASCADE CONSTRAINTS;
-DROP TABLE js_sys_lang CASCADE CONSTRAINTS;
-DROP TABLE js_sys_log CASCADE CONSTRAINTS;
-DROP TABLE js_sys_role_menu CASCADE CONSTRAINTS;
-DROP TABLE js_sys_menu CASCADE CONSTRAINTS;
-DROP TABLE js_sys_module CASCADE CONSTRAINTS;
-DROP TABLE js_sys_msg_inner_record CASCADE CONSTRAINTS;
-DROP TABLE js_sys_msg_inner CASCADE CONSTRAINTS;
-DROP TABLE js_sys_msg_push CASCADE CONSTRAINTS;
-DROP TABLE js_sys_msg_pushed CASCADE CONSTRAINTS;
-DROP TABLE js_sys_msg_template CASCADE CONSTRAINTS;
-DROP TABLE js_sys_office CASCADE CONSTRAINTS;
-DROP TABLE js_sys_post CASCADE CONSTRAINTS;
-DROP TABLE js_sys_role_data_scope CASCADE CONSTRAINTS;
-DROP TABLE js_sys_role CASCADE CONSTRAINTS;
-
-
-
 
 /* Create Tables */
 
@@ -261,6 +224,7 @@ CREATE TABLE js_sys_employee
 	emp_code varchar2(64) NOT NULL,
 	emp_name nvarchar2(100) NOT NULL,
 	emp_name_en varchar2(100),
+	emp_no nvarchar2(100),
 	office_code varchar2(64) NOT NULL,
 	office_name nvarchar2(100) NOT NULL,
 	company_code varchar2(64),
@@ -280,11 +244,11 @@ CREATE TABLE js_sys_employee
 -- 员工附属机构关系表
 CREATE TABLE js_sys_employee_office
 (
-	id varchar2(64) NOT NULL UNIQUE,
+	id varchar2(64) NOT NULL,
 	emp_code varchar2(64) NOT NULL,
 	office_code varchar2(64) NOT NULL,
 	post_code varchar2(64),
-	PRIMARY KEY (emp_code, office_code)
+	PRIMARY KEY (id)
 );
 
 
@@ -307,6 +271,7 @@ CREATE TABLE js_sys_file_entity
 	file_extension varchar2(100) NOT NULL,
 	file_size number(31) NOT NULL,
 	file_meta varchar2(255),
+	file_preview char(1),
 	PRIMARY KEY (file_id)
 );
 
@@ -318,6 +283,7 @@ CREATE TABLE js_sys_file_upload
 	file_id varchar2(64) NOT NULL,
 	file_name nvarchar2(500) NOT NULL,
 	file_type varchar2(20) NOT NULL,
+	file_sort number(10),
 	biz_key varchar2(64),
 	biz_type varchar2(64),
 	status char(1) DEFAULT '0' NOT NULL,
@@ -742,7 +708,7 @@ CREATE TABLE js_sys_user
 	user_code varchar2(100) NOT NULL,
 	login_code varchar2(100) NOT NULL,
 	user_name varchar2(100) NOT NULL,
-	password varchar2(100) NOT NULL,
+	password varchar2(200) NOT NULL,
 	email varchar2(300),
 	mobile varchar2(100),
 	phone varchar2(100),
@@ -897,7 +863,7 @@ CREATE INDEX idx_sys_msg_inner_sc ON js_sys_msg_inner (send_user_code);
 CREATE INDEX idx_sys_msg_inner_sd ON js_sys_msg_inner (send_date);
 CREATE INDEX idx_sys_msg_inner_r_mi ON js_sys_msg_inner_record (msg_inner_id);
 CREATE INDEX idx_sys_msg_inner_r_ruc ON js_sys_msg_inner_record (receive_user_code);
-CREATE INDEX idx_sys_msg_inner_r_status ON js_sys_msg_inner_record (read_status);
+CREATE INDEX idx_sys_msg_inner_r_stat ON js_sys_msg_inner_record (read_status);
 CREATE INDEX idx_sys_msg_inner_r_star ON js_sys_msg_inner_record (is_star);
 CREATE INDEX idx_sys_msg_push_type ON js_sys_msg_push (msg_type);
 CREATE INDEX idx_sys_msg_push_rc ON js_sys_msg_push (receive_code);
@@ -1125,7 +1091,8 @@ COMMENT ON COLUMN js_sys_dict_type.remarks IS '备注信息';
 COMMENT ON TABLE js_sys_employee IS '员工表';
 COMMENT ON COLUMN js_sys_employee.emp_code IS '员工编码';
 COMMENT ON COLUMN js_sys_employee.emp_name IS '员工姓名';
-COMMENT ON COLUMN js_sys_employee.emp_name_en IS '英文名';
+COMMENT ON COLUMN js_sys_employee.emp_name_en IS '员工英文名';
+COMMENT ON COLUMN js_sys_employee.emp_no IS '员工工号';
 COMMENT ON COLUMN js_sys_employee.office_code IS '机构编码';
 COMMENT ON COLUMN js_sys_employee.office_name IS '机构名称';
 COMMENT ON COLUMN js_sys_employee.company_code IS '公司编码';
@@ -1154,11 +1121,13 @@ COMMENT ON COLUMN js_sys_file_entity.file_content_type IS '文件内容类型';
 COMMENT ON COLUMN js_sys_file_entity.file_extension IS '文件后缀扩展名';
 COMMENT ON COLUMN js_sys_file_entity.file_size IS '文件大小(单位B)';
 COMMENT ON COLUMN js_sys_file_entity.file_meta IS '文件信息(JSON格式)';
+COMMENT ON COLUMN js_sys_file_entity.file_preview IS '文件预览标记';
 COMMENT ON TABLE js_sys_file_upload IS '文件上传表';
 COMMENT ON COLUMN js_sys_file_upload.id IS '编号';
 COMMENT ON COLUMN js_sys_file_upload.file_id IS '文件编号';
 COMMENT ON COLUMN js_sys_file_upload.file_name IS '文件名称';
 COMMENT ON COLUMN js_sys_file_upload.file_type IS '文件分类（image、media、file）';
+COMMENT ON COLUMN js_sys_file_upload.file_sort IS '文件排序（升序）';
 COMMENT ON COLUMN js_sys_file_upload.biz_key IS '业务主键';
 COMMENT ON COLUMN js_sys_file_upload.biz_type IS '业务类型';
 COMMENT ON COLUMN js_sys_file_upload.status IS '状态（0正常 1删除 2停用）';
