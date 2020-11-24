@@ -121,7 +121,7 @@ public class BinaryUploader {
 					// 先截图 
 					if (v.cutPic()){
 						// 开启进程，在转换视频文件
-						Thread thread = new Thread("video-convert") {
+						new Thread(new Runnable() {
 							@Override
 							public void run() {
 								try {
@@ -131,9 +131,7 @@ public class BinaryUploader {
 									e.printStackTrace();
 								}
 							}
-						};
-						thread.setDaemon(true);
-						thread.start();  
+						}).start();  
 						storageState.putInfo("url", ctx + PathFormat.format(savePath) + "." + v.getOutputFileExtension());
 						storageState.putInfo("type", "." + v.getOutputFileExtension());
 						storageState.putInfo("original", originFileName +"."+ v.getInputFileExtension());

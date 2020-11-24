@@ -4,10 +4,8 @@
 package com.jeesite.modules.sys.utils;
 
 import java.util.List;
-import java.util.Set;
 
 import com.jeesite.common.collect.ListUtils;
-import com.jeesite.common.collect.SetUtils;
 import com.jeesite.common.lang.StringUtils;
 import com.jeesite.common.utils.SpringUtils;
 import com.jeesite.modules.sys.entity.Company;
@@ -20,13 +18,13 @@ import com.jeesite.modules.sys.service.EmployeeService;
 import com.jeesite.modules.sys.service.OfficeService;
 
 /**
- * 员工部门工具类
+ * 员工工具类
  * @author ThinkGem
- * @version 2020-5-20
+ * @version 2016年11月2日
  */
 public class EmpUtils {
 
-	// 机构和公司缓存常量
+	// 部门和公司缓存常量
 	public static final String CACHE_OFFICE_ALL_LIST = "officeAllList";
 	public static final String CACHE_COMPANY_ALL_LIST = "companyAllList";
 	public static final String CACHE_COMPANY_OFFICE_LIST = "employeeOfficeList";
@@ -54,7 +52,7 @@ public class EmpUtils {
 	 */
 	public static Employee get(User user){
 		if (user != null && User.USER_TYPE_EMPLOYEE.equals(user.getUserType())){
-			return user.getRefObj();
+			return (Employee)user.getRefObj();
 		}
 		return null;
 	}
@@ -93,8 +91,7 @@ public class EmpUtils {
 	}
 
 	/**
-	 * 获取当前附属机构对象列表
-	 * @author ThinkGem
+	 * 获取当前附属部门对象列表
 	 */
 	public static List<EmployeeOffice> getEmployeeOfficeList(){
 		List<EmployeeOffice> list = UserUtils.getCache(CACHE_COMPANY_OFFICE_LIST);
@@ -106,9 +103,37 @@ public class EmpUtils {
 	}
 	
 	/**
-	 * 根据机构编码获取机构对象
-	 * @param officeCode
+	 * 获取所有部门编码，包括附属部门（数据权限用）
+	 * @return
 	 * @author ThinkGem
+	 */
+	public static String[] getOfficeCodes(){
+		List<String> list = ListUtils.newArrayList();
+		list.add(getOffice().getOfficeCode());
+		getEmployeeOfficeList().forEach(e -> {
+			list.add(e.getOfficeCode());
+		});
+		return list.toArray(new String[list.size()]);
+	}
+	
+	/**
+	 * 获取所有部门编码，包括附属部门（数据权限用）
+	 * @return
+	 * @author ThinkGem
+	 */
+	public static String[] getOfficeParentCodess(){
+		List<String> list = ListUtils.newArrayList();
+		list.add(getOffice().getParentCodes());
+		getEmployeeOfficeList().forEach(e -> {
+			list.add(e.getParentCodes());
+		});
+		return list.toArray(new String[list.size()]);
+	}
+	
+	/**
+	 * 获取部门对象
+	 * @param officeCode
+	 * @return
 	 */
 	public static Office getOffice(String officeCode){
 		List<Office> officeList = getOfficeAllList();
@@ -121,16 +146,15 @@ public class EmpUtils {
 	}
 	
 	/**
-	 * 获取当前员工机构
-	 * @author ThinkGem
+	 * 获取当前员工附属部门
 	 */
 	public static Office getOffice(){
 		return getEmployee().getOffice();
 	}
 
 	/**
-	 * 获取当前员工所有的机构
-	 * @author ThinkGem
+	 * 获取所有的机构
+	 * @return
 	 */
 	public static List<Office> getOfficeAllList(){
 		@SuppressWarnings("unchecked")
@@ -145,120 +169,16 @@ public class EmpUtils {
 	}
 
 	/**
-	 * 获取当前员工所有机构编码，包括附属机构（数据权限用）
-	 * @author ThinkGem
+	 * 获取当前公司对象
 	 */
-	public static String[] getOfficeCodes(){
-		List<String> list = ListUtils.newArrayList();
-		list.add(getOffice().getOfficeCode());
-		getEmployeeOfficeList().forEach(e -> {
-			list.add(e.getOfficeCode());
-		});
-		return list.toArray(new String[list.size()]);
+	public static Company getCompany(){
+		return getEmployee().getCompany();
 	}
 	
 	/**
-	 * 获取当前员工所有机构编码，包括附属机构以及子机构（数据权限用）V4.2.0
-	 * @author ThinkGem
-	 */
-	public static String[] getOfficeCodesAndChildren(){
-		Set<String> list = SetUtils.newLinkedHashSet();
-		Set<String> parentCodess = SetUtils.newHashSet();
-		Office currentOffice = getOffice();
-		list.add(currentOffice.getOfficeCode());
-		parentCodess.add(currentOffice.getParentCodes() + currentOffice.getOfficeCode() + ",");
-		// 添加附属机构
-		getEmployeeOfficeList().forEach(e -> {
-			list.add(e.getOfficeCode());
-			parentCodess.add(e.getParentCodes() + e.getOfficeCode() + ",");
-		});
-		// 查找并添加子机构
-		getOfficeAllList().forEach(e -> {
-			for (String parentCodes : parentCodess) {
-				if (e.getParentCodes().startsWith(parentCodes)) {
-					list.add(e.getOfficeCode());
-					break;
-				}
-			}
-		});
-		return list.toArray(new String[list.size()]);
-	}
-
-	/**
-	 * 根据机构类型，获取当前员工所有机构编码，包括附属机构（数据权限用）
-	 * @author ThinkGem
-	 */
-	public static String[] getOfficeCodesByType(String type){
-		List<String> list = ListUtils.newArrayList();
-		Office office = getOffice();
-		if (type.equals(office.getOfficeType())){
-			list.add(office.getOfficeCode());
-		}else{
-			Office parent = getOffice().getParentByType(type);
-			if (parent != null){
-				list.add(parent.getOfficeCode());
-			}
-		}
-		getEmployeeOfficeList().forEach(e -> {
-			Office office2 = getOffice(e.getOfficeCode());
-			if (type.equals(office2.getOfficeType())){
-				list.add(office2.getOfficeCode());
-			}else{
-				Office parent2 = office2.getParentByType(type);
-				if (parent2 != null){
-					list.add(parent2.getOfficeCode());
-				}
-			}
-		});
-		return list.toArray(new String[list.size()]);
-	}
-
-	/**
-	 * 获取当前员工所有上级机构编码，包括附属机构（数据权限用）
-	 * @author ThinkGem
-	 */
-	public static String[] getOfficeParentCodess(){
-		List<String> list = ListUtils.newArrayList();
-		list.add(getOffice().getParentCodes());
-		getEmployeeOfficeList().forEach(e -> {
-			list.add(e.getParentCodes());
-		});
-		return list.toArray(new String[list.size()]);
-	}
-	
-	/**
-	 * 根据机构类型，获取当前员工所有机构编码，包括附属机构（数据权限用）
-	 * @author ThinkGem
-	 */
-	public static String[] getOfficeParentCodessByType(String type){
-		List<String> list = ListUtils.newArrayList();
-		Office office = getOffice();
-		if (type.equals(office.getOfficeType())){
-			list.add(office.getParentCodes());
-		}else{
-			Office parent = getOffice().getParentByType(type);
-			if (parent != null){
-				list.add(parent.getParentCodes());
-			}
-		}
-		getEmployeeOfficeList().forEach(e -> {
-			Office office2 = getOffice(e.getOfficeCode());
-			if (type.equals(office2.getOfficeType())){
-				list.add(office2.getParentCodes());
-			}else{
-				Office parent2 = office2.getParentByType(type);
-				if (parent2 != null){
-					list.add(parent2.getParentCodes());
-				}
-			}
-		});
-		return list.toArray(new String[list.size()]);
-	}
-	
-	/**
-	 * 根据公司编码获取公司对象
+	 * 获取公司对象
 	 * @param companyCode
-	 * @author ThinkGem
+	 * @return
 	 */
 	public static Company getCompany(String companyCode){
 		List<Company> companyList = getCompanyAllList();
@@ -271,16 +191,8 @@ public class EmpUtils {
 	}
 	
 	/**
-	 * 获取当前员工公司对象
-	 * @author ThinkGem
-	 */
-	public static Company getCompany(){
-		return getEmployee().getCompany();
-	}
-
-	/**
-	 * 获取当前员工所有的公司
-	 * @author ThinkGem
+	 * 获取所有的公司
+	 * @return
 	 */
 	public static List<Company> getCompanyAllList(){
 		@SuppressWarnings("unchecked")
@@ -295,30 +207,8 @@ public class EmpUtils {
 	}
 	
 	/**
-	 * 获取当前员工所有公司编码，包括子公司（数据权限用）V4.2.0
-	 * @author ThinkGem
-	 */
-	public static String[] getCompanyCodesAndChildren(){
-		Set<String> list = SetUtils.newLinkedHashSet();
-		Set<String> parentCodess = SetUtils.newHashSet();
-		Company currentCompany = getCompany();
-		list.add(currentCompany.getCompanyCode());
-		parentCodess.add(currentCompany.getParentCodes() + currentCompany.getCompanyCode() + ",");
-		// 查找并添加子公司
-		getCompanyAllList().forEach(e -> {
-			for (String parentCodes : parentCodess) {
-				if (e.getParentCodes().startsWith(parentCodes)) {
-					list.add(e.getCompanyCode());
-					break;
-				}
-			}
-		});
-		return list.toArray(new String[list.size()]);
-	}
-	
-	/**
 	 * 清除指定用户缓存，不包括改用的SESSION缓存
-	 * @author ThinkGem
+	 * @param user
 	 */
 	public static void removeCache(String key){
 		if (StringUtils.inString(key, CACHE_OFFICE_ALL_LIST, CACHE_COMPANY_ALL_LIST)){

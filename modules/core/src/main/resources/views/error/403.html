@@ -6,9 +6,11 @@ var message = @ObjectUtils.toString(@request.getAttribute("message"));
 if (isBlank(message)){
 	var ex = @ExceptionUtils.getThrowable(request);
 	if (ex != null){
-		var m = @ExceptionUtils.getExceptionMessage(ex);
-		if (isNotBlank(m)){
-			message = m;
+		for (e in [ex, ex.cause!, ex.cause.cause!]){
+			if (@StringUtils.startsWith(e.message!, "msg:")){
+				message = @StringUtils.replace(e.message!, "msg:", "");
+				break;
+			}
 		}
 	}
 }
@@ -30,7 +32,7 @@ else {
 <div class="error-page">
 	<div class="headline text-yellow">403</div>
 	<div class="error-content">
-		<h3>${message}</h3>
+		<h3><i class="fa fa-warning text-yellow"></i> ${message}</h3>
 		<p>${text('sys.error.403.message.p1')}</p>
 		<button type="button" class="btn btn-warning btn-sm" onclick="history.go(-1);"><i
 			class="fa fa-reply-all"></i> ${text('sys.error.returnButton')}</button>

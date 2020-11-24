@@ -3,8 +3,6 @@
  */
 package com.jeesite.modules.test.service;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,16 +68,6 @@ public class TestDataService extends CrudService<TestDataDao, TestData> {
 	}
 	
 	/**
-	 * 查询子表分页数据
-	 * @param page 分页对象
-	 * @param testData
-	 * @return
-	 */
-	public List<TestDataChild> findSubList(TestDataChild testData) {
-		return testDataChildDao.findList(testData);
-	}
-	
-	/**
 	 * 保存数据（插入或更新）
 	 * @param testData
 	 */
@@ -92,7 +80,6 @@ public class TestDataService extends CrudService<TestDataDao, TestData> {
 		// 保存上传附件
 		FileUploadUtils.saveFileUpload(testData.getId(), "testData_file");
 		// 保存 TestData子表
-		int index = 0;
 		for (TestDataChild testDataChild : testData.getTestDataChildList()){
 			if (!TestDataChild.STATUS_DELETE.equals(testDataChild.getStatus())){
 				testDataChild.setTestData(testData);
@@ -106,10 +93,6 @@ public class TestDataService extends CrudService<TestDataDao, TestData> {
 			}else{
 				testDataChildDao.delete(testDataChild);
 			}
-			// 保存上传附件
-			FileUploadUtils.saveFileUpload(testDataChild.getId(),
-					"testDataChildList["+index+"].testDataChild_file");
-			index++;
 		}
 	}
 	

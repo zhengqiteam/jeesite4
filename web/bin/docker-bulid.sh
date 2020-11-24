@@ -10,6 +10,4 @@ echo "[信息] 使用 Spring Boot Docker 编译 Web 工程。"
 echo ""
 
 cd ..
-mvn clean package docker:stop docker:remove docker:build docker:run -Dmaven.test.skip=true -U
-
-cd bin
+mvn clean package docker:build -Dmaven.test.skip=true -U -Pdocker

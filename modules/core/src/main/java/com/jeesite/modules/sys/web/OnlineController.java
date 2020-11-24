@@ -23,6 +23,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.jeesite.common.cache.CacheUtils;
 import com.jeesite.common.collect.ListUtils;
 import com.jeesite.common.collect.MapUtils;
 import com.jeesite.common.config.Global;
@@ -32,7 +33,6 @@ import com.jeesite.common.lang.TimeUtils;
 import com.jeesite.common.shiro.realm.LoginInfo;
 import com.jeesite.common.shiro.session.SessionDAO;
 import com.jeesite.common.web.BaseController;
-import com.jeesite.modules.sys.utils.SysCacheUtils;
 import com.jeesite.modules.sys.utils.UserUtils;
 
 /**
@@ -142,29 +142,26 @@ public class OnlineController extends BaseController{
 	@RequiresPermissions("sys:online:edit")
 	@RequestMapping(value = "tickOut")
 	@ResponseBody
-	public String kickOut(String sessionId) {
+	public String tickOut(String sessionId) {
 		Session session = sessionDAO.readSession(sessionId);
 		if (session != null){
-			Map<String, String> onlineTickOutMap = SysCacheUtils.get("onlineTickOutMap");
+			Map<String, String> onlineTickOutMap = CacheUtils.get("onlineTickOutMap");
 			if (onlineTickOutMap == null){
 				onlineTickOutMap = MapUtils.newConcurrentMap();
 			}
 			Object pc = session.getAttribute(DefaultSubjectContext.PRINCIPALS_SESSION_KEY);
 			if (pc != null && pc instanceof PrincipalCollection){
-				Object pp = ((PrincipalCollection)pc).getPrimaryPrincipal();
-				if (pp != null) {
-					if (pp instanceof LoginInfo){
-						LoginInfo loginInfo = ((LoginInfo)pp);
-						String key = loginInfo.getId()+"_"+loginInfo.getParam("deviceType", "PC");
-						onlineTickOutMap.put(key, StringUtils.EMPTY);
-					}
+				LoginInfo loginInfo = (LoginInfo)((PrincipalCollection)pc).getPrimaryPrincipal();
+				if (loginInfo != null){
+					String key = loginInfo.getId()+"_"+loginInfo.getParam("deviceType", "PC");
+					onlineTickOutMap.put(key, StringUtils.EMPTY);
 				}
 			}
-			SysCacheUtils.put("onlineTickOutMap", onlineTickOutMap);
+			CacheUtils.put("onlineTickOutMap", onlineTickOutMap);
 			sessionDAO.delete(session);
-			return renderResult(Global.TRUE, text("踢出已成功！"));
+			return renderResult(Global.TRUE, "踢出已成功！");
 		}
-		return renderResult(Global.FALSE, text("踢出失败，没有找到该在线用户！"));
+		return renderResult(Global.FALSE, "踢出失败，没有找到该在线用户！");
 	}
 	
 }

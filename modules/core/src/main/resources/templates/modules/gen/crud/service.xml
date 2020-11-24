@@ -22,14 +22,7 @@ import com.jeesite.common.entity.Page;
 import com.jeesite.common.service.${table.isTreeEntity?'Tree':'Crud'}Service;
 import ${packageName}.${moduleName}.entity${isNotEmpty(subModuleName)?'.'+subModuleName:''}.${ClassName};
 import ${packageName}.${moduleName}.dao${isNotEmpty(subModuleName)?'.'+subModuleName:''}.${ClassName}Dao;
-<% if(toBoolean(table.optionMap['isBpmForm'])){ %>
-import java.util.Map;
-import com.jeesite.common.lang.StringUtils;
-import com.jeesite.common.collect.MapUtils;
-import com.jeesite.common.service.ServiceException;
-import com.jeesite.modules.bpm.utils.BpmUtils;
-<% } %>
-<% if(toBoolean(table.optionMap['isImageUpload']) || toBoolean(table.optionMap['isFileUpload'])){ %>
+<% if(@ObjectUtils.toBoolean(table.optionMap['isImageUpload']) || @ObjectUtils.toBoolean(table.optionMap['isFileUpload'])){ %>
 import com.jeesite.modules.file.utils.FileUploadUtils;
 <% } %>
 <% for (child in table.childList){ %>
@@ -104,48 +97,12 @@ public class ${ClassName}Service extends ${table.isTreeEntity?'Tree':'Crud'}Serv
 	@Override
 	@Transactional(readOnly=false)
 	public void save(${ClassName} ${className}) {
-	<% if(toBoolean(table.optionMap['isBpmForm'])){ %>
-		// 如果未设置状态，则指定状态为审核状态，以提交审核流程
-		if (StringUtils.isBlank(${className}.getStatus())){
-			${className}.setStatus(${ClassName}.STATUS_AUDIT);
-		}
-		
-		// 如果状态为正常，则代表不正常操作，可能前端进行了数据参数修改
-		if (${ClassName}.STATUS_NORMAL.equals(${className}.getStatus())){
-			throw new ServiceException(text("非法操作，前端数据被劫持！"));
-		}
-		
-		// 如果状态为草稿或审核状态，才可以保存业务数据
-		if (${ClassName}.STATUS_DRAFT.equals(${className}.getStatus())
-				|| ${ClassName}.STATUS_AUDIT.equals(${className}.getStatus())){
-			super.save(${className});
-		}
-
-		// 如果为审核状态，则进行审批流操作
-		if (${ClassName}.STATUS_AUDIT.equals(${className}.getStatus())){
-			
-			// 指定流程变量，作为流程条件，决定流转方向
-			Map<String, Object> variables = MapUtils.newHashMap();
-			//variables.put("leaveDays", ${className}.getLeaveDays());
-			
-			// 如果流程实例为空，任务编号也为空，则：启动流程
-			if (StringUtils.isBlank(${className}.getBpm().getProcInsId())
-					&& StringUtils.isBlank(${className}.getBpm().getTaskId())){
-				BpmUtils.start(${className}, "${table.optionMap['bpmFormKey']}", variables, null);
-			}
-			// 如果有任务信息，则：提交任务
-			else{
-				BpmUtils.complete(${className}, variables, null);
-			}
-		}
-	<% }else{ %>
 		super.save(${className});
-	<% } %>
-	<% if(toBoolean(table.optionMap['isImageUpload'])){ %>
+	<% if(@ObjectUtils.toBoolean(table.optionMap['isImageUpload'])){ %>
 		// 保存上传图片
 		FileUploadUtils.saveFileUpload(${className}.getId(), "${className}_image");
 	<% } %>
-	<% if(toBoolean(table.optionMap['isFileUpload'])){ %>
+	<% if(@ObjectUtils.toBoolean(table.optionMap['isFileUpload'])){ %>
 		// 保存上传附件
 		FileUploadUtils.saveFileUpload(${className}.getId(), "${className}_file");
 	<% } %>

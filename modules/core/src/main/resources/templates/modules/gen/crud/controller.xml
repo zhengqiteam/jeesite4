@@ -39,10 +39,6 @@ import com.jeesite.modules.sys.utils.UserUtils;
 <% }else{ %>
 import com.jeesite.common.entity.Page;
 <% } %>
-<% if (table.tplCategory == 'crud_select'){ %>
-import com.alibaba.fastjson.JSONValidator;
-import com.jeesite.common.codec.EncodeUtils;
-<% } %>
 import com.jeesite.common.web.BaseController;
 import ${packageName}.${moduleName}.entity${isNotEmpty(subModuleName)?'.'+subModuleName:''}.${ClassName};
 import ${packageName}.${moduleName}.service${isNotEmpty(subModuleName)?'.'+subModuleName:''}.${ClassName}Service;
@@ -67,12 +63,8 @@ public class ${ClassName}Controller extends BaseController {
 		<% if (table.pkList.~size == 1){ %>
 		return ${className}Service.get(<% for(pk in table.pkList){ %>${pkLP.index!=1?', ':''}${pk.simpleAttrName}<% } %>, isNewRecord);
 		<% }else{ %>
-		${ClassName} ${className} = new ${ClassName}();
-		<% for(pk in table.pkList){ %>
-		${className}.set${@StringUtils.cap(pk.simpleAttrName)}(${pk.simpleAttrName});
-		<% } %>
-		${className}.setIsNewRecord(isNewRecord);
-		return ${className}Service.getAndValid(${className});
+		return ${className}Service.get(new Class<?>[]{<% for(pk in table.pkList){ %>${pkLP.index!=1?', ':''}${pk.simpleAttrType}.class<% } %>},
+				new Object[]{<% for(pk in table.pkList){ %>${pkLP.index!=1?', ':''}${pk.simpleAttrName}<% } %>}, isNewRecord);
 		<% } %>
 	}
 	
@@ -99,15 +91,9 @@ public class ${ClassName}Controller extends BaseController {
 		}
 		<% for(c in table.columnList){ %>
 			<% if(c.isQuery == "1" && !c.isTreeEntityColumn && c.attrName != 'status'){ %>
-				<% if(c.attrType == 'String'){ %>
 		if (StringUtils.isNotBlank(${className}.${c.attrNameForGetMethod})){
 			${className}.setParentCode(null);
 		}
-				<% }else{ %>
-		if (${className}.${c.attrNameForGetMethod} != null){
-			${className}.setParentCode(null);
-		}
-				<% } %>
 			<% } %>
 		<% } %>
 		List<${ClassName}> list = ${className}Service.findList(${className});
@@ -169,7 +155,7 @@ public class ${ClassName}Controller extends BaseController {
 	<% } %>
 
 	/**
-	 * 保存数据
+	 * 保存${functionNameSimple}
 	 */
 	@RequiresPermissions("${permissionPrefix}:edit")
 	@PostMapping(value = "save")
@@ -178,10 +164,10 @@ public class ${ClassName}Controller extends BaseController {
 		${className}Service.save(${className});
 		return renderResult(Global.TRUE, text("保存${functionNameSimple}成功！"));
 	}
-	<% if(toBoolean(table.optionMap['isHaveDisableEnable'])){ %>
+	<% if(@ObjectUtils.toBoolean(table.optionMap['isHaveDisableEnable'])){ %>
 	
 	/**
-	 * 停用数据
+	 * 停用${functionNameSimple}
 	 */
 	@RequiresPermissions("${permissionPrefix}:edit")
 	@RequestMapping(value = "disable")
@@ -202,7 +188,7 @@ public class ${ClassName}Controller extends BaseController {
 	}
 	
 	/**
-	 * 启用数据
+	 * 启用${functionNameSimple}
 	 */
 	@RequiresPermissions("${permissionPrefix}:edit")
 	@RequestMapping(value = "enable")
@@ -213,10 +199,10 @@ public class ${ClassName}Controller extends BaseController {
 		return renderResult(Global.TRUE, text("启用${functionNameSimple}成功"));
 	}
 	<% } %>
-	<% if(toBoolean(table.optionMap['isHaveDelete'])){ %>
+	<% if(@ObjectUtils.toBoolean(table.optionMap['isHaveDelete'])){ %>
 	
 	/**
-	 * 删除数据
+	 * 删除${functionNameSimple}
 	 */
 	@RequiresPermissions("${permissionPrefix}:edit")
 	@RequestMapping(value = "delete")
@@ -242,12 +228,10 @@ public class ${ClassName}Controller extends BaseController {
 		List<${ClassName}> list = ${className}Service.findList(new ${ClassName}());
 		for (int i=0; i<list.size(); i++){
 			${ClassName} e = list.get(i);
-			<% if (table.statusExists){ %>
 			// 过滤非正常的数据
 			if (!${ClassName}.STATUS_NORMAL.equals(e.getStatus())){
 				continue;
 			}
-			<% } %>
 			// 过滤被排除的编码（包括所有子级）
 			if (StringUtils.isNotBlank(excludeCode)){
 				if (e.getId().equals(excludeCode)){
@@ -278,22 +262,6 @@ public class ${ClassName}Controller extends BaseController {
 		}
 		${className}Service.fixTreeData();
 		return renderResult(Global.TRUE, "数据修复成功");
-	}
-	<% } %>
-	<% if (table.tplCategory == 'crud_select'){ %>
-	
-	/**
-	 * 列表选择对话框
-	 */
-	@RequiresPermissions("${permissionPrefix}:view")
-	@RequestMapping(value = "${className}Select")
-	public String empUserSelect(${ClassName} ${className}, String selectData, Model model) {
-		String selectDataJson = EncodeUtils.decodeUrl(selectData);
-		if (selectDataJson != null && JSONValidator.from(selectDataJson).validate()){
-			model.addAttribute("selectData", selectDataJson);
-		}
-		model.addAttribute("${ClassName}", ${className});
-		return "${lastPackageName}/${viewPrefix}Select";
 	}
 	<% } %>
 	

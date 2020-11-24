@@ -158,8 +158,8 @@ public class MsgInnerService extends CrudService<MsgInnerDao, MsgInner> {
 					BaseMsgContent msgContent = null;
 					if (MsgPush.TYPE_PC.equals(type)){
 						msgContent = new PcMsgContent();
-						msgContent.setContent(text("你有一条内部消息，点击“详情”进行查阅。"));
-						((PcMsgContent)msgContent).addButton(new String[]{text("详情"), 
+						msgContent.setContent("你有一条内部消息，点击“详情”进行查阅。");
+						((PcMsgContent)msgContent).addButton(new String[]{"详情", 
 								Global.getAdminPath()+"/msg/msgInner/view?id="+msgInner.getId()});
 					}else if (MsgPush.TYPE_APP.equals(type)){
 						msgContent = new AppMsgContent();
@@ -171,7 +171,7 @@ public class MsgInnerService extends CrudService<MsgInnerDao, MsgInner> {
 					if (msgContent != null){
 						msgContent.setTitle(msgInner.getMsgTitle());
 						if (msgContent.getContent() == null){
-							msgContent.setContent(text("你有一条内部消息请查阅：")
+							msgContent.setContent("你有一条内部消息请查阅："
 									+ StringUtils.abbr(msgInner.getMsgTitle(), 30));
 						}
 						msgContent.setMsgPush(new MsgPush());
@@ -183,14 +183,16 @@ public class MsgInnerService extends CrudService<MsgInnerDao, MsgInner> {
 			}
 		});
 		ListUtils.pageList(recordList, 100, new MethodCallback() {
+			@Override
 			@SuppressWarnings("unchecked")
 			public Object execute(Object... objs) {
-				return msgInnerRecordDao.insertBatch((List<MsgInnerRecord>)objs[0]);
+				msgInnerRecordDao.insertBatch((List<MsgInnerRecord>)objs[0]);
+				return null;
 			}
 		});
 		// 手动触发消息推送任务
 		if (Global.TRUE.equals(Global.getProperty("msg.realtime.enabled"))){
-			Thread thread = new Thread("msg-push-task-execute"){
+			new Thread(){
 				public void run() {
 					try{
 						MsgPushUtils.getMsgPushTask().execute();
@@ -198,9 +200,7 @@ public class MsgInnerService extends CrudService<MsgInnerDao, MsgInner> {
 						logger.error("实时消息发送失败，推送服务配置不正确。", ex);
 					}
 				}
-			};
-			thread.setDaemon(true);
-			thread.start();
+			}.start();
 		}
 	}
 	

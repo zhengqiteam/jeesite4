@@ -50,7 +50,6 @@ public class PostController extends BaseController {
 	@RequiresPermissions("sys:post:view")
 	@RequestMapping(value = "list")
 	public String list(Post post, Model model) {
-		model.addAttribute("post", post);
 		return "modules/sys/postList";
 	}
 	

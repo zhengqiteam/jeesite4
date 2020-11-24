@@ -2,7 +2,6 @@ package com.jeesite.modules.sys.web;
 
 import javax.annotation.PostConstruct;
 
-import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,10 +24,10 @@ import com.jeesite.modules.sys.utils.UserUtils;
 public class CacheController extends BaseController {
 
 	/**
-	 * 清理全部缓存，可清理属性文件里的缓存（stste 单词写错了，将错就错）
+	 * 清理全部缓存，可清理属性文件里的缓存
 	 * @return
 	 */
-	@RequiresPermissions(value={"sys:config:edit", "sys:stste:cache"}, logical=Logical.OR)
+	@RequiresPermissions("sys:config:edit")
 	@RequestMapping(value = "clearAll")
 	@ResponseBody
 	public String clearAll() {
@@ -36,7 +35,7 @@ public class CacheController extends BaseController {
 		CacheUtils.clearCache();
 		MapperHelper.clearCache();
 		UserUtils.clearCache();
-		return renderResult(Global.TRUE, text("清理缓存成功"));
+		return renderResult(Global.TRUE, "清理缓存成功！");
 	}
 	
 	@PostConstruct

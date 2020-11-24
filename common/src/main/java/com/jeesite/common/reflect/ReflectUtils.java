@@ -97,16 +97,14 @@ public class ReflectUtils {
 		Field field = getAccessibleField(obj, fieldName);
 		if (field == null) {
 			//throw new IllegalArgumentException("在 [" + obj.getClass() + "] 中，没有找到 [" + fieldName + "] 字段 ");
-			if (obj != null) {
-				logger.debug("在 [" + obj.getClass() + "] 中，没有找到 [" + fieldName + "] 字段 ");
-			}
+			logger.debug("在 [" + obj.getClass() + "] 中，没有找到 [" + fieldName + "] 字段 ");
 			return null;
 		}
 		E result = null;
 		try {
 			result = (E)field.get(obj);
 		} catch (IllegalAccessException e) {
-			logger.error("不可能抛出的异常: {}", e.getMessage());
+			logger.error("不可能抛出的异常{}", e.getMessage());
 		}
 		return result;
 	}
@@ -143,9 +141,7 @@ public class ReflectUtils {
 		Method method = getAccessibleMethod(obj, methodName, parameterTypes);
 		if (method == null) {
 			//throw new IllegalArgumentException("在 [" + obj.getClass() + "] 中，没有找到 [" + methodName + "] 方法 ");
-			if (obj != null) {
-				logger.debug("在 [" + (obj.getClass() == Class.class ? obj : obj.getClass()) + "] 中，没有找到 [" + methodName + "] 方法 ");
-			}
+			logger.debug("在 [" + (obj.getClass() == Class.class ? obj : obj.getClass()) + "] 中，没有找到 [" + methodName + "] 方法 ");
 			return null;
 		}
 		try {
@@ -168,9 +164,7 @@ public class ReflectUtils {
 		if (method == null) {
 			// 如果为空不报错，直接返回空。
 //			throw new IllegalArgumentException("在 [" + obj.getClass() + "] 中，没有找到 [" + methodName + "] 方法 ");
-			if (obj != null) {
-				logger.debug("在 [" + (obj.getClass() == Class.class ? obj : obj.getClass()) + "] 中，没有找到 [" + methodName + "] 方法 ");
-			}
+			logger.debug("在 [" + (obj.getClass() == Class.class ? obj : obj.getClass()) + "] 中，没有找到 [" + methodName + "] 方法 ");
 			return null;
 		}
 		try {
@@ -296,8 +290,7 @@ public class ReflectUtils {
 	 * 改变private/protected的方法为public，尽量不调用实际改动的语句，避免JDK的SecurityManager抱怨。
 	 */
 	public static void makeAccessible(Method method) {
-		if ((!Modifier.isPublic(method.getModifiers())
-				|| !Modifier.isPublic(method.getDeclaringClass().getModifiers()))
+		if ((!Modifier.isPublic(method.getModifiers()) || !Modifier.isPublic(method.getDeclaringClass().getModifiers()))
 				&& !method.isAccessible()) {
 			method.setAccessible(true);
 		}
@@ -307,9 +300,8 @@ public class ReflectUtils {
 	 * 改变private/protected的成员变量为public，尽量不调用实际改动的语句，避免JDK的SecurityManager抱怨。
 	 */
 	public static void makeAccessible(Field field) {
-		if ((!Modifier.isPublic(field.getModifiers())
-				|| !Modifier.isPublic(field.getDeclaringClass().getModifiers())
-				|| Modifier.isFinal(field.getModifiers())) && !field.isAccessible()) {
+		if ((!Modifier.isPublic(field.getModifiers()) || !Modifier.isPublic(field.getDeclaringClass().getModifiers()) || Modifier
+				.isFinal(field.getModifiers())) && !field.isAccessible()) {
 			field.setAccessible(true);
 		}
 	}
@@ -335,12 +327,16 @@ public class ReflectUtils {
 	 * @return the index generic declaration, or Object.class if cannot be determined
 	 */
 	public static Class getClassGenricType(final Class clazz, final int index) {
+
 		Type genType = clazz.getGenericSuperclass();
+
 		if (!(genType instanceof ParameterizedType)) {
 			logger.debug(clazz.getSimpleName() + "'s superclass not ParameterizedType");
 			return Object.class;
 		}
+
 		Type[] params = ((ParameterizedType) genType).getActualTypeArguments();
+
 		if (index >= params.length || index < 0) {
 			logger.debug("Index: " + index + ", Size of " + clazz.getSimpleName() + "'s Parameterized Type: "
 					+ params.length);
@@ -350,6 +346,7 @@ public class ReflectUtils {
 			logger.debug(clazz.getSimpleName() + " not set the actual class on superclass generic parameter");
 			return Object.class;
 		}
+
 		return (Class) params[index];
 	}
 	

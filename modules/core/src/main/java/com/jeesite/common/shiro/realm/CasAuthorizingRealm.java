@@ -38,7 +38,7 @@ import com.jeesite.modules.sys.utils.UserUtils;
 /**
  * 系统安全认证实现类
  * @author ThinkGem
- * @version 2020-9-19
+ * @version 2018-7-11
  */
 @SuppressWarnings("deprecation")
 public class CasAuthorizingRealm extends BaseAuthorizingRealm  {
@@ -92,7 +92,7 @@ public class CasAuthorizingRealm extends BaseAuthorizingRealm  {
 		casToken.setUserId(casPrincipal.getName());
 		
 		// 生成登录信息对象
-		FormToken token = new FormToken(request);
+		FormToken token = new FormToken();
         token.setUsername(casPrincipal.getName());
         Map<String, Object> params = MapUtils.newHashMap();
         params.putAll(casPrincipal.getAttributes());
@@ -114,7 +114,6 @@ public class CasAuthorizingRealm extends BaseAuthorizingRealm  {
 				// 获取CAS传递过来的用户属性信息
 				user = new User(EncodeUtils.decodeUrl(ObjectUtils.toString(attrs.get("userCode"))));
 				user.setLoginCode(EncodeUtils.decodeUrl(ObjectUtils.toString(attrs.get("loginCode"))));
-				user.setCorpCode_(EncodeUtils.decodeUrl(ObjectUtils.toString(attrs.get("corpCode"))));
 				user.setPassword(EncodeUtils.decodeUrl(ObjectUtils.toString(attrs.get("password"))));
 				user.setUserName(EncodeUtils.decodeUrl(ObjectUtils.toString(attrs.get("userName"))));
 				user.setEmail(EncodeUtils.decodeUrl(ObjectUtils.toString(attrs.get("email"))));
@@ -146,7 +145,7 @@ public class CasAuthorizingRealm extends BaseAuthorizingRealm  {
 					}
 					
 					// 重新获取用户登录
-					user = UserUtils.getByLoginCode(token.getUsername(), user.getCorpCode_());
+					user = UserUtils.getByLoginCode(token.getUsername()/*, corpCode*/);
 					if (user != null) {
 						return user;
 					}

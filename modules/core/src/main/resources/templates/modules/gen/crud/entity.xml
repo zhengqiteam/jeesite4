@@ -21,13 +21,6 @@ import com.jeesite.common.entity.TreeEntity;
 import com.jeesite.common.mybatis.annotation.Column;
 import com.jeesite.common.mybatis.annotation.Table;
 import com.jeesite.common.mybatis.mapper.query.QueryType;
-<% if(toBoolean(table.optionMap['isBpmForm'])){ %>
-	<% if(table.isTreeEntity){ %>
-import com.jeesite.modules.bpm.entity.BpmTreeEntity;
-	<% }else{ %>
-import com.jeesite.modules.bpm.entity.BpmEntity;
-	<% } %>
-<% } %>
 
 /**
  * ${functionName}Entity
@@ -143,9 +136,9 @@ import com.jeesite.modules.bpm.entity.BpmEntity;
 			}
 		}
 		if (isNotBlank(joinTables)){
-			print('joinTable={');
+			print('joinTable={\n');
 			print(joinTables);
-			print('}, ');
+			print('\t}, ');
 		}
 		// ◆ 生成排序字段
 	%>orderBy="<% if (isTree){
@@ -163,7 +156,7 @@ import com.jeesite.modules.bpm.entity.BpmEntity;
 						}
 					} %>"
 )
-public class ${ClassName} extends ${toBoolean(table.optionMap['isBpmForm'])?(table.isTreeEntity?'BpmTree':'Bpm'):table.isTreeEntity?'Tree':'Data'}Entity<${ClassName}> {
+public class ${ClassName} extends ${table.isTreeEntity?'Tree':'Data'}Entity<${ClassName}> {
 	
 	private static final long serialVersionUID = 1L;
 	<%
@@ -180,7 +173,7 @@ public class ${ClassName} extends ${toBoolean(table.optionMap['isBpmForm'])?(tab
 			}
 		}
 		// 如果不是基类属性
-		else if(!@StringUtils.equalsIgnoreCase(c.columnName, 'id') && !c.isSuperColumn){
+		else if(c.columnName != 'id' && !c.isSuperColumn){
 			// 父类对象
 			if(table.parentExists && table.parentTableFkName == c.columnName){
 	%>
@@ -206,7 +199,7 @@ public class ${ClassName} extends ${toBoolean(table.optionMap['isBpmForm'])?(tab
 	%>
 	
 	public ${ClassName}() {
-		this(<% for(pk in table.pkList){ %>${pkLP.index!=1?', ':''}null<% } %>);
+		this(null);
 	}
 
 	<%
@@ -275,7 +268,7 @@ public class ${ClassName} extends ${toBoolean(table.optionMap['isBpmForm'])?(tab
 	<%
 				}
 		// 如果不是基类属性
-		}else if(!@StringUtils.equalsIgnoreCase(c.columnName, 'id') && !c.isSuperColumn){
+		}else if(c.columnName != 'id' && !c.isSuperColumn){
 	%>
 	
 	<%

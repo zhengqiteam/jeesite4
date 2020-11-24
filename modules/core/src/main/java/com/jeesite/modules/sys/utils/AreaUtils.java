@@ -5,6 +5,7 @@ package com.jeesite.modules.sys.utils;
 
 import java.util.List;
 
+import com.jeesite.common.cache.CacheUtils;
 import com.jeesite.common.utils.SpringUtils;
 import com.jeesite.modules.sys.entity.Area;
 import com.jeesite.modules.sys.service.AreaService;
@@ -31,10 +32,11 @@ public class AreaUtils {
 	 * @return
 	 */
 	public static List<Area> getAreaAllList(){
-		List<Area> areaList = SysCacheUtils.get(CACHE_AREA_ALL_LIST);
+		@SuppressWarnings("unchecked")
+		List<Area> areaList = (List<Area>)CacheUtils.get(CACHE_AREA_ALL_LIST);
 		if (areaList == null){
 			areaList = Static.areaService.findList(new Area());
-			SysCacheUtils.put(CACHE_AREA_ALL_LIST, areaList);
+			CacheUtils.put(CACHE_AREA_ALL_LIST, areaList);
 		}
 		return areaList;
 	}
@@ -43,7 +45,7 @@ public class AreaUtils {
 	 * 清理区域缓存
 	 */
 	public static void clearCache(){
-		SysCacheUtils.remove(CACHE_AREA_ALL_LIST);
+		CacheUtils.remove(CACHE_AREA_ALL_LIST);
 	}
 	
 }

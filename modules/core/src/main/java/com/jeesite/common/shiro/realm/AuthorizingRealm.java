@@ -5,8 +5,6 @@ package com.jeesite.common.shiro.realm;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.shiro.authc.AuthenticationException;
-import org.apache.shiro.authc.AuthenticationInfo;
 import org.apache.shiro.authc.AuthenticationToken;
 
 import com.jeesite.common.codec.EncodeUtils;
@@ -41,7 +39,7 @@ public class AuthorizingRealm extends BaseAuthorizingRealm  {
 	}
 	
 	/**
-	 * 获取登录凭证，将 authcToken 转换为 FormToken，参考 CAS 实现
+	 * 获取登录令牌
 	 */
 	@Override
 	protected FormToken getFormToken(AuthenticationToken authcToken) {
@@ -49,21 +47,11 @@ public class AuthorizingRealm extends BaseAuthorizingRealm  {
 	}
 	
 	/**
-	 * 用于用户根据登录信息获取用户信息<br>
-	 * 1、默认根据登录账号登录信息，如：UserUtils.getByLoginCode(token.getUsername(), token.getParam("corpCode"));<br>
-	 * 2、如果增加其它登录，请重写此方法，如根据手机号或邮箱登录返回用户信息。
+	 * 获取用户信息
 	 */
 	@Override
 	protected User getUserInfo(FormToken token) {
 		return super.getUserInfo(token);
-	}
-	
-	/**
-	 * 校验登录凭证，如密码验证，token验证，验证失败抛出 AuthenticationException 异常
-	 */
-	@Override
-	protected void assertCredentialsMatch(AuthenticationToken authcToken, AuthenticationInfo authcInfo) throws AuthenticationException {
-		super.assertCredentialsMatch(authcToken, authcInfo);
 	}
 	
 	/**

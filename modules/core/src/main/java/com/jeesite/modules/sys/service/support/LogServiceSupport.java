@@ -3,6 +3,7 @@
  */
 package com.jeesite.modules.sys.service.support;
 
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.jeesite.common.entity.Page;
@@ -42,7 +43,7 @@ public class LogServiceSupport extends CrudService<LogDao, Log>
 	/**
 	 * 不使用数据库事务，执行插入日志
 	 */
-	@Transactional(readOnly=false)//, propagation=Propagation.NOT_SUPPORTED)
+	@Transactional(readOnly=false, propagation=Propagation.NOT_SUPPORTED)
 	public void insertLog(Log entity) {
 		dao.insert(entity);
 	}

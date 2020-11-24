@@ -5,7 +5,6 @@ package com.jeesite.common.shiro.filter;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -16,8 +15,6 @@ import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.IncorrectCredentialsException;
 import org.apache.shiro.authc.UnknownAccountException;
-import org.apache.shiro.authz.UnauthorizedException;
-import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.web.servlet.Cookie;
 import org.apache.shiro.web.servlet.SimpleCookie;
@@ -27,56 +24,45 @@ import org.slf4j.LoggerFactory;
 
 import com.jeesite.common.codec.DesUtils;
 import com.jeesite.common.codec.EncodeUtils;
-import com.jeesite.common.collect.MapUtils;
 import com.jeesite.common.config.Global;
 import com.jeesite.common.lang.ObjectUtils;
 import com.jeesite.common.lang.StringUtils;
 import com.jeesite.common.network.IpUtils;
 import com.jeesite.common.shiro.authc.FormToken;
 import com.jeesite.common.shiro.realm.BaseAuthorizingRealm;
-import com.jeesite.common.web.CookieUtils;
+import com.jeesite.common.shiro.realm.LoginInfo;
 import com.jeesite.common.web.http.ServletUtils;
-import com.jeesite.modules.sys.entity.Log;
-import com.jeesite.modules.sys.entity.User;
-import com.jeesite.modules.sys.utils.LogUtils;
 import com.jeesite.modules.sys.utils.UserUtils;
 
 /**
  * 表单验证（包含验证码）过滤类
  * @author ThinkGem
- * @version 2020-9-19
+ * @version 2018-7-11
  */
 public class FormAuthenticationFilter extends org.apache.shiro.web.filter.authc.FormAuthenticationFilter {
-
-	public static final String CAPTCHA_PARAM = "validCode"; 					// 验证码
-	public static final String MESSAGE_PARAM = "message"; 						// 登录返回消息
-	public static final String REMEMBER_USERCODE_PARAM = "rememberUserCode"; 	// 记住用户名
-	public static final String EXCEPTION_ATTRIBUTE_NAME = "exception"; 			// 异常类属性名
+	
+	public static final String DEFAULT_CAPTCHA_PARAM = "validCode"; // 验证码
+	public static final String DEFAULT_PARAMS_PARAM = ServletUtils.DEFAULT_PARAMS_PARAM; // 登录附加参数（JSON字符串）优先级高于附加参数前缀
+	public static final String DEFAULT_PARAM_PREFIX_PARAM = ServletUtils.DEFAULT_PARAM_PREFIX_PARAM; // 附加参数前缀
+	public static final String DEFAULT_MESSAGE_PARAM = "message"; // 登录返回消息
+	public static final String DEFAULT_REMEMBER_USERCODE_PARAM = "rememberUserCode"; // 记住用户名
 	
 	private static final Logger logger = LoggerFactory.getLogger(FormAuthenticationFilter.class);
-	private static FormAuthenticationFilter instance;
+	
+	private BaseAuthorizingRealm authorizingRealm; // 安全认证类
 
-	private BaseAuthorizingRealm authorizingRealm;
-	private Cookie rememberUserCodeCookie; 	// 记住用户名Cookie
+	private Cookie rememberUserCodeCookie; // 记住用户名Cookie
 	
 	/**
 	 * 构造方法
 	 */
 	public FormAuthenticationFilter() {
 		super();
-		rememberUserCodeCookie = new SimpleCookie(REMEMBER_USERCODE_PARAM);
+		rememberUserCodeCookie = new SimpleCookie(DEFAULT_REMEMBER_USERCODE_PARAM);
 		rememberUserCodeCookie.setHttpOnly(true);
         rememberUserCodeCookie.setMaxAge(Cookie.ONE_YEAR);
-        instance = this;
 	}
 	
-	/**
-	 * 创建登录授权令牌
-	 */
-	public static FormToken newToken(HttpServletRequest request, HttpServletResponse response) {
-		return (FormToken)instance.createToken(request, response);
-	}
-
 	/**
 	 * 创建登录授权令牌
 	 */
@@ -101,14 +87,14 @@ public class FormAuthenticationFilter extends org.apache.shiro.web.filter.authc.
 		}
 		// 登录用户名解密（解决登录用户名明文传输安全问题）
 		String secretKey = Global.getProperty("shiro.loginSubmit.secretKey");
-		if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(secretKey)){
+		if (StringUtils.isNotBlank(secretKey)){
 			username = DesUtils.decode(username, secretKey);
 			if (StringUtils.isBlank(username)){
 				logger.info("登录账号为空或解码错误.");
 			}
 		}
-		// 登录时判断是否需要记住用户名
-		if (WebUtils.isTrue(request, REMEMBER_USERCODE_PARAM)) {
+		// 登录成功后，判断是否需要记住用户名
+		if (WebUtils.isTrue(request, DEFAULT_REMEMBER_USERCODE_PARAM)) {
 			rememberUserCodeCookie.setValue(EncodeUtils.encodeUrl(EncodeUtils.xssFilter(username)));
 			rememberUserCodeCookie.saveTo((HttpServletRequest)request, (HttpServletResponse)response);
 		} else {
@@ -128,7 +114,7 @@ public class FormAuthenticationFilter extends org.apache.shiro.web.filter.authc.
 		}
 		// 登录密码解密（解决登录密码明文传输安全问题）
 		String secretKey = Global.getProperty("shiro.loginSubmit.secretKey");
-		if (StringUtils.isNotBlank(password) && StringUtils.isNotBlank(secretKey)){
+		if (StringUtils.isNotBlank(secretKey)){
 			password = DesUtils.decode(password, secretKey);
 			if (StringUtils.isBlank(password)){
 				logger.info("登录密码为空或解码错误.");
@@ -161,24 +147,16 @@ public class FormAuthenticationFilter extends org.apache.shiro.web.filter.authc.
 	 * 获取登录验证码
 	 */
 	protected String getCaptcha(ServletRequest request) {
-		String captcha = WebUtils.getCleanParam(request, CAPTCHA_PARAM);
+		String captcha = WebUtils.getCleanParam(request, DEFAULT_CAPTCHA_PARAM);
 		if (StringUtils.isBlank(captcha)){
-			captcha = ObjectUtils.toString(request.getAttribute(CAPTCHA_PARAM), StringUtils.EMPTY);
+			captcha = ObjectUtils.toString(request.getAttribute(DEFAULT_CAPTCHA_PARAM), StringUtils.EMPTY);
 		}
 		// 登录用户名解密（解决登录用户名明文传输安全问题）
 		String secretKey = Global.getProperty("shiro.loginSubmit.secretKey");
-		if (StringUtils.isNotBlank(captcha) && StringUtils.isNotBlank(secretKey)){
+		if (StringUtils.isNotBlank(secretKey)){
 			captcha = DesUtils.decode(captcha, secretKey);
 		}
 		return captcha;
-	}
-	
-	/**
-	 * 多次调用登录接口，允许改变登录身份，无需退出再登录
-	 */
-	@Override
-	protected boolean isAccessAllowed(ServletRequest request, ServletResponse response, Object mappedValue) {
-		return (!isLoginRequest(request, response) && isPermissive(mappedValue)); // 不验证登录状态，只验证登录请求
 	}
 	
 	/**
@@ -249,38 +227,17 @@ public class FormAuthenticationFilter extends org.apache.shiro.web.filter.authc.
 	}
 
 	/**
-	 * 登录成功调用事件（静态方便其他位置调用）
-	 */
-	public static boolean onLoginSuccess(HttpServletRequest request, HttpServletResponse response) {
-		try {
-			return instance.onLoginSuccess(null, null, request, response);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
-
-	/**
 	 * 登录成功调用事件
 	 */
 	@Override
 	protected boolean onLoginSuccess(AuthenticationToken token, Subject subject, ServletRequest request, ServletResponse response) throws Exception {
-		// 登录成功后初始化授权信息并处理登录后的操作
-		authorizingRealm.onLoginSuccess(UserUtils.getLoginInfo(), (HttpServletRequest)request);
-		// AJAX不支持Redirect改用Forward
-		try {
-			request.getRequestDispatcher(getSuccessUrl()).forward(request, response);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return false;
-	}
 
-	/**
-	 * 登录失败调用事件（静态方便其他位置调用）
-	 */
-	public static boolean onLoginFailure(AuthenticationException e, HttpServletRequest request, HttpServletResponse response) {
-		return instance.onLoginFailure(null, e, request, response);
+		// 登录成功后初始化授权信息并处理登录后的操作
+		authorizingRealm.onLoginSuccess((LoginInfo)subject.getPrincipal(), (HttpServletRequest) request);
+		
+		// AJAX不支持Redirect改用Forward
+		request.getRequestDispatcher(getSuccessUrl()).forward(request, response);
+		return false;
 	}
 
 	/**
@@ -288,115 +245,21 @@ public class FormAuthenticationFilter extends org.apache.shiro.web.filter.authc.
 	 */
 	@Override
 	protected boolean onLoginFailure(AuthenticationToken token, AuthenticationException e, ServletRequest request, ServletResponse response) {
-		String message = StringUtils.EMPTY;
-		if (e.getMessage() != null && StringUtils.startsWith(e.getMessage(), "msg:")) {
-			message = StringUtils.replace(e.getMessage(), "msg:", "");
-		} else if (e instanceof IncorrectCredentialsException || e instanceof UnknownAccountException) {
+		String className = e.getClass().getName(), message = "";
+		if (IncorrectCredentialsException.class.getName().equals(className) || UnknownAccountException.class.getName().equals(className)) {
 			message = Global.getText("sys.login.failure");
+		} else if (e.getMessage() != null && StringUtils.startsWith(e.getMessage(), "msg:")) {
+			message = StringUtils.replace(e.getMessage(), "msg:", "");
 		} else {
 			message = Global.getText("sys.login.error");
 			logger.error(message, e); // 输出到日志文件
 		}
-		request.setAttribute(EXCEPTION_ATTRIBUTE_NAME, e);
-		request.setAttribute(MESSAGE_PARAM, message);
-		
-		// AJAX不支持Redirect改用Forward
-		try {
-			String loginFailureUrl = Global.getProperty("adminPath")+"/loginFailure";
-			request.getRequestDispatcher(loginFailureUrl).forward(request, response);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
-		return false;
-	}
-	
-	/**
-	 * 获取登录页面数据
-	 * @author ThinkGem
-	 */
-	public static Map<String, Object> getLoginData(HttpServletRequest request, HttpServletResponse response) {
-		Map<String, Object> data = MapUtils.newHashMap();
-		
-		// 获取登录参数
-		Map<String, Object> paramMap = ServletUtils.getExtParams(request);
-		for (Entry<String, Object> entry : paramMap.entrySet()){
-			data.put(ServletUtils.EXT_PARAMS_PREFIX + entry.getKey(), entry.getValue());
-		}
-		
-		// 如果已登录，再次访问主页，则退出原账号。
-		if (!Global.TRUE.equals(Global.getConfig("shiro.isAllowRefreshIndex"))){
-			CookieUtils.setCookie(response, "LOGINED", "false");
-		}
-
-		// 是否显示验证码
-		data.put("isValidCodeLogin", Global.getConfigToInteger("sys.login.failedNumAfterValidCode", "200") == 0);
-
-		//获取当前会话对象
-		Session session = UserUtils.getSession();
-		data.put("sessionid", (String)session.getId());
-		
-		// 如果登录设置了语言，则切换语言
-		if (paramMap.get("lang") != null){
-			Global.setLang((String)paramMap.get("lang"), request, response);
-		}
-		
-		data.put("result", "login");
-		return data;
+		request.setAttribute(getFailureKeyAttribute(), className);
+		request.setAttribute(DEFAULT_MESSAGE_PARAM, message);
+		return true;
 	}
 
-	/**
-	 * 获取登录失败数据
-	 * @author ThinkGem
-	 */
-	public static Map<String, Object> getLoginFailureData(HttpServletRequest request, HttpServletResponse response) {
-		Map<String, Object> data = MapUtils.newHashMap();
-		
-		String username = WebUtils.getCleanParam(request, DEFAULT_USERNAME_PARAM);
-		boolean rememberMe = WebUtils.isTrue(request, DEFAULT_REMEMBER_ME_PARAM);
-		boolean rememberUserCode = WebUtils.isTrue(request, REMEMBER_USERCODE_PARAM);
-		Exception exception = (Exception)request.getAttribute(EXCEPTION_ATTRIBUTE_NAME);
-		String message = (String)request.getAttribute(MESSAGE_PARAM);
-
-		String secretKey = Global.getProperty("shiro.loginSubmit.secretKey");
-		if (StringUtils.isNotBlank(secretKey)){
-			username = DesUtils.decode(username, secretKey);
-		}
-		
-		data.put(DEFAULT_USERNAME_PARAM, username);
-		data.put(DEFAULT_REMEMBER_ME_PARAM, rememberMe);
-		data.put(REMEMBER_USERCODE_PARAM, rememberUserCode);
-		Map<String, Object> paramMap = ServletUtils.getExtParams(request);
-		for (Entry<String, Object> entry : paramMap.entrySet()){
-			data.put(ServletUtils.EXT_PARAMS_PREFIX + entry.getKey(), entry.getValue());
-		}
-		data.put(MESSAGE_PARAM, message);
-		
-		// 非授权异常，登录失败，验证码加 1。
-		if (!(exception instanceof UnauthorizedException)){
-			data.put("isValidCodeLogin", BaseAuthorizingRealm.isValidCodeLogin(username,
-					(String)paramMap.get("corpCode"), (String)paramMap.get("deviceType"), "failed"));
-		}
-
-		// 记录用户登录失败日志
-		String corpCode = (String)paramMap.get("corpCode");
-		User user = UserUtils.getByLoginCode(username, corpCode);
-		LogUtils.saveLog(user, request, "登录失败", Log.TYPE_LOGIN_LOGOUT);
-		
-		//获取当前会话对象
-		Session session = UserUtils.getSession();
-		data.put("sessionid", (String)session.getId());
-		
-		// 如果登录设置了语言，则切换语言
-		if (paramMap.get("lang") != null){
-			Global.setLang((String)paramMap.get("lang"), request, response);
-		}
-		
-		data.put("result", Global.FALSE);
-		return data;
-	}
-	
 	public void setAuthorizingRealm(BaseAuthorizingRealm authorizingRealm) {
 		this.authorizingRealm = authorizingRealm;
 	}
-	
 }

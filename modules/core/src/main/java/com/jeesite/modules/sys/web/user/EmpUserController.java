@@ -11,7 +11,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.shiro.authz.annotation.Logical;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
-import org.apache.shiro.subject.Subject;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -21,11 +20,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.alibaba.fastjson.JSONValidator;
 import com.jeesite.common.codec.EncodeUtils;
 import com.jeesite.common.collect.ListUtils;
 import com.jeesite.common.collect.MapUtils;
@@ -33,7 +30,7 @@ import com.jeesite.common.config.Global;
 import com.jeesite.common.entity.Page;
 import com.jeesite.common.lang.DateUtils;
 import com.jeesite.common.lang.StringUtils;
-import com.jeesite.common.shiro.realm.AuthorizingRealm;
+import com.jeesite.common.mapper.JsonMapper;
 import com.jeesite.common.utils.excel.ExcelExport;
 import com.jeesite.common.utils.excel.annotation.ExcelField.Type;
 import com.jeesite.common.web.BaseController;
@@ -80,7 +77,6 @@ public class EmpUserController extends BaseController {
 	@RequiresPermissions("sys:empUser:view")
 	@RequestMapping(value = "index")
 	public String index(EmpUser empUser, Model model) {
-		model.addAttribute("empUser", empUser);
 		return "modules/sys/user/empUserIndex";
 	}
 	
@@ -90,7 +86,6 @@ public class EmpUserController extends BaseController {
 		// 获取岗位列表
 		Post post = new Post();
 		model.addAttribute("postList", postService.findList(post));
-		model.addAttribute("empUser", empUser);
 		return "modules/sys/user/empUserList";
 	}
 
@@ -153,51 +148,25 @@ public class EmpUserController extends BaseController {
 	@RequiresPermissions(value={"sys:empUser:edit","sys:empUser:authRole"}, logical=Logical.OR)
 	@PostMapping(value = "save")
 	@ResponseBody
-	public String save(@Validated EmpUser empUser, String op, HttpServletRequest request) {
+	public String save(@Validated EmpUser empUser, String oldLoginCode, String op, HttpServletRequest request) {
 		if (User.isSuperAdmin(empUser.getUserCode())) {
 			return renderResult(Global.FALSE, "非法操作，不能够操作此用户！");
 		}
 		if (!EmpUser.USER_TYPE_EMPLOYEE.equals(empUser.getUserType())){
 			return renderResult(Global.FALSE, "非法操作，不能够操作此用户！");
 		}
-		EmpUser old = super.getWebDataBinderSource(request);
-		if (!Global.TRUE.equals(userService.checkLoginCode(old != null ? old.getLoginCode() : "", empUser.getLoginCode()))) {
+		if (!Global.TRUE.equals(userService.checkLoginCode(oldLoginCode, empUser.getLoginCode()/*, null*/))) {
 			return renderResult(Global.FALSE, text("保存用户失败，登录账号''{0}''已存在", empUser.getLoginCode()));
 		}
-		if (StringUtils.isBlank(empUser.getEmployee().getEmpNo())){
-			empUser.getEmployee().setEmpNo(empUser.getLoginCode());
-		}
-		if (!Global.TRUE.equals(checkEmpNo(old != null ? old.getEmployee().getEmpNo() : "", empUser.getEmployee().getEmpNo()))) {
-			return renderResult(Global.FALSE, text("保存用户失败，员工工号''{0}''已存在", empUser.getEmployee().getEmpNo()));
-		}
-		Subject subject = UserUtils.getSubject();
-		if (StringUtils.inString(op, Global.OP_ADD, Global.OP_EDIT) && subject.isPermitted("sys:empUser:edit")){
+		if (StringUtils.inString(op, Global.OP_ADD, Global.OP_EDIT)
+				&& UserUtils.getSubject().isPermitted("sys:empUser:edit")){
 			empUserService.save(empUser);
 		}
-		if (StringUtils.inString(op, Global.OP_ADD, Global.OP_AUTH) && subject.isPermitted("sys:empUser:authRole")){
+		if (StringUtils.inString(op, Global.OP_ADD, Global.OP_AUTH)
+				&& UserUtils.getSubject().isPermitted("sys:empUser:authRole")){
 			userService.saveAuth(empUser);
 		}
 		return renderResult(Global.TRUE, text("保存用户''{0}''成功", empUser.getUserName()));
-	}
-	
-	/**
-	 * 验证工号是否有效
-	 * @param oldName
-	 * @param name
-	 * @return
-	 */
-	@RequiresPermissions("user")
-	@RequestMapping(value = "checkEmpNo")
-	@ResponseBody
-	public String checkEmpNo(String oldEmpNo, @RequestParam("employee.empNo") String empNo) {
-		Employee employee = new Employee();
-		employee.setEmpNo(empNo);
-		if (empNo != null && empNo.equals(oldEmpNo)) {
-			return Global.TRUE;
-		} else if (empNo != null && employeeService.getByEmpNo(employee) == null) {
-			return Global.TRUE;
-		}
-		return Global.FALSE;
 	}
 
 	/**
@@ -273,7 +242,7 @@ public class EmpUserController extends BaseController {
 			return renderResult(Global.FALSE, text("停用用户失败，不允许停用当前用户"));
 		}
 		empUser.setStatus(User.STATUS_DISABLE);
-		empUserService.updateStatus(empUser);
+		userService.updateStatus(empUser);
 		return renderResult(Global.TRUE, text("停用用户''{0}''成功", empUser.getUserName()));
 	}
 	
@@ -293,8 +262,7 @@ public class EmpUserController extends BaseController {
 			return renderResult(Global.FALSE, "非法操作，不能够操作此用户！");
 		}
 		empUser.setStatus(User.STATUS_NORMAL);
-		empUserService.updateStatus(empUser);
-		AuthorizingRealm.isValidCodeLogin(empUser.getLoginCode(), empUser.getCorpCode_(), null, "success");
+		userService.updateStatus(empUser);
 		return renderResult(Global.TRUE, text("启用用户''{0}''成功", empUser.getUserName()));
 	}
 	
@@ -314,7 +282,6 @@ public class EmpUserController extends BaseController {
 			return renderResult(Global.FALSE, "非法操作，不能够操作此用户！");
 		}
 		userService.updatePassword(empUser.getUserCode(), null);
-		AuthorizingRealm.isValidCodeLogin(empUser.getLoginCode(), empUser.getCorpCode_(), null, "success");
 		return renderResult(Global.TRUE, text("重置用户''{0}''密码成功", empUser.getUserName()));
 	}
 
@@ -424,7 +391,7 @@ public class EmpUserController extends BaseController {
 	@RequestMapping(value = "empUserSelect")
 	public String empUserSelect(EmpUser empUser, String selectData, Model model) {
 		String selectDataJson = EncodeUtils.decodeUrl(selectData);
-		if (selectDataJson != null && JSONValidator.from(selectDataJson).validate()){
+		if (JsonMapper.fromJson(selectDataJson, Map.class) != null){
 			model.addAttribute("selectData", selectDataJson);
 		}
 		model.addAttribute("empUser", empUser);

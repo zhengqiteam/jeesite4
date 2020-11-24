@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,8 +62,7 @@ public class CompanyController extends BaseController {
 	 */
 	@RequiresPermissions("sys:company:view")
 	@RequestMapping(value = "list")
-	public String list(Company company, Model model) {
-		model.addAttribute("company", company);
+	public String list(Company company, HttpServletRequest request, HttpServletResponse response, Model model) {
 		return "modules/sys/companyList";
 	}
 
@@ -247,10 +247,10 @@ public class CompanyController extends BaseController {
 	@ResponseBody
 	public String fixTreeData() {
 		if (!UserUtils.getUser().isAdmin()){
-			return renderResult(Global.FALSE, text("操作失败，只有管理员才能进行修复！"));
+			return renderResult(Global.FALSE, "操作失败，只有管理员才能进行修复！");
 		}
 		companyService.fixTreeData();
-		return renderResult(Global.TRUE, text("数据修复成功"));
+		return renderResult(Global.TRUE, "数据修复成功");
 	}
 
 }

@@ -5,6 +5,8 @@ package com.jeesite.common.utils.excel.fieldtype;
 
 import java.util.List;
 
+import org.springframework.core.NamedThreadLocal;
+
 import com.jeesite.common.collect.ListUtils;
 import com.jeesite.common.lang.StringUtils;
 import com.jeesite.common.utils.SpringUtils;
@@ -14,24 +16,26 @@ import com.jeesite.modules.sys.service.PostService;
 /**
  * 字段类型转换
  * @author ThinkGem
- * @version 2020-3-5
+ * @version 2018-08-11
  * @example fieldType = PostListType.class
  */
-public class PostListType implements FieldType {
+public class PostListType {
 
-	private List<Post> postList;
-	
-	public PostListType() {
-		PostService postService = SpringUtils.getBean(PostService.class);
-		postList = postService.findList(new Post());
-	}
-	
+	private static PostService postService = SpringUtils.getBean(PostService.class);
+	private static ThreadLocal<List<Post>> cache = new NamedThreadLocal<>("PostListType");
+
 	/**
 	 * 获取对象值（导入）
 	 */
-	public Object getValue(String val) {
+	public static Object getValue(String val) {
+		List<Post> postList = ListUtils.newArrayList();
+		List<Post> cacheList = cache.get();
+		if (cacheList == null){
+			cacheList = postService.findList(new Post());
+			cache.set(cacheList);
+		}
 		for (String s : StringUtils.split(val, ",")) {
-			for (Post e : postList) {
+			for (Post e : cacheList) {
 				if (StringUtils.trimToEmpty(s).equals(e.getPostName())) {
 					postList.add(e);
 				}
@@ -43,7 +47,7 @@ public class PostListType implements FieldType {
 	/**
 	 * 设置对象值（导出）
 	 */
-	public String setValue(Object val) {
+	public static String setValue(Object val) {
 		if (val != null) {
 			@SuppressWarnings("unchecked")
 			List<Post> postList = (List<Post>) val;
@@ -52,4 +56,10 @@ public class PostListType implements FieldType {
 		return "";
 	}
 	
+	/**
+	 * 清理缓存
+	 */
+	public static void clearCache(){
+		cache.remove();
+	}
 }

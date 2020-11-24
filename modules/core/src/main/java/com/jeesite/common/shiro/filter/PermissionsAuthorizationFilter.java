@@ -15,7 +15,6 @@ import org.apache.shiro.authz.UnauthorizedException;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.web.util.WebUtils;
 
-import com.jeesite.common.codec.EncodeUtils;
 import com.jeesite.common.config.Global;
 import com.jeesite.common.lang.StringUtils;
 import com.jeesite.common.web.http.ServletUtils;
@@ -74,27 +73,20 @@ public class PermissionsAuthorizationFilter extends org.apache.shiro.web.filter.
 		}
 		if (ServletUtils.isAjaxRequest(req)) {
 			try {
-//				String uri = req.getRequestURI();
-//				if (StringUtils.endsWithIgnoreCase(uri, ".json")
-//						&& !StringUtils.endsWithIgnoreCase(loginUrl, ".json")){
-//					loginUrl += ".json";
-//				}else if (StringUtils.endsWithIgnoreCase(uri, ".xml")
-//						&& !StringUtils.endsWithIgnoreCase(loginUrl, ".xml")){
-//					loginUrl += ".xml";
-//				}
-				loginUrl = Global.getAdminPath() + "/login";
+				String uri = req.getRequestURI();
+				if (StringUtils.endsWithIgnoreCase(uri, ".json")
+						&& !StringUtils.endsWithIgnoreCase(loginUrl, ".json")){
+					loginUrl += ".json";
+				}else if (StringUtils.endsWithIgnoreCase(uri, ".xml")
+						&& !StringUtils.endsWithIgnoreCase(loginUrl, ".xml")){
+					loginUrl += ".xml";
+				}
 				request.getRequestDispatcher(loginUrl).forward(
 						new GetHttpServletRequestWrapper(request), response);
 			} catch (ServletException e) {
 				e.printStackTrace();
 			}
     	}else{
-    		loginUrl += StringUtils.contains(loginUrl, "?") ? "&" : "?";
-    		StringBuilder requestUrl = new StringBuilder(req.getRequestURL());
-            if (req.getQueryString() != null) {
-                requestUrl.append("?").append(req.getQueryString());
-            }
-    		loginUrl += "__url=" + EncodeUtils.encodeUrl(requestUrl.toString());
     		WebUtils.issueRedirect(request, response, loginUrl);
     	}
 	}

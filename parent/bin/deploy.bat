@@ -14,5 +14,4 @@ cd %~dp0
 cd ..
 call mvn clean deploy -Dmaven.test.skip=true -Pdeploy
 
-cd bin
 pause
